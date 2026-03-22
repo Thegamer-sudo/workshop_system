@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% block title %}Workshops — Student Workshop{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1>All Workshops</h1>
+      <p>
+        {% if session.get('role') == 'admin' %}
+          Overview of all workshops on the platform.
+        {% else %}
+          Browse available workshops and register for ones that interest you.
+        {% endif %}
+      </p>
+    </div>
+    {% if session.get('role') == 'admin' %}
+      <a href="{{ url_for('create_workshop') }}" class="btn btn-primary">
+        + Create Workshop
+      </a>
+    {% endif %}
+  </div>
+
+  {% if workshops %}
+    <div class="workshop-grid">
+      {% for workshop in workshops %}
+        <div class="card workshop-card">
+
+          <!-- Card Header -->
+          <div class="card-header">
+            <h3>{{ workshop.title }}</h3>
+            {% if session.get('role') == 'admin' %}
+              {% if workshop.status == 'pending' %}
+                <span class="badge" style="background:#fef9c3; color:#92400e;">Pending</span>
+              {% elif workshop.status == 'rejected' %}
+                <span class="badge badge-red">Rejected</span>
+              {% elif workshop.date >= today %}
+                <span class="badge badge-teal">Upcoming</span>
+              {% else %}
+                <span class="badge" style="background:#f1f5f9; color:#64748b;">Completed</span>
+              {% endif %}
+            {% else %}
+              {% if workshop.id in registered_ids %}
+                <span class="badge badge-green">Registered</span>
+              {% else %}
+                <span class="badge badge-teal">Open</span>
+              {% endif %}
+            {% endif %}
+          </div>
+
+          <!-- Card Body -->
+          <div class="card-body">
+            <div class="workshop-meta">
+
+              <div class="meta-row">
+                <div class="meta-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                </div>
+                <span>{{ workshop.date }}</span>
+              </div>
+
+              <div class="meta-row">
+                <div class="meta-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                </div>
+                <span>{{ workshop.start_time }} &ndash; {{ workshop.end_time }}</span>
+              </div>
+
+              <div class="meta-row">
+                <div class="meta-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </div>
+                <span>{{ workshop.created_by_name }}</span>
+              </div>
+
+            </div>
+            <p class="workshop-desc">{{ workshop.description }}</p>
+          </div>
+
+          <!-- Card Footer -->
+          <div class="card-footer">
+
+            {% if session.get('role') == 'admin' %}
+              <!-- Admin footer — approve pending or just label -->
+              {% if workshop.status == 'pending' %}
+                <span class="text-sm text-muted">Awaiting your approval</span>
+                <div style="display:flex; gap:0.5rem;">
+                  <form method="POST"
+                    action="{{ url_for('approve_workshop', workshop_id=workshop.id) }}">
+                    <button type="submit" class="btn btn-primary btn-sm">Approve</button>
+                  </form>
+                  <form method="POST"
+                    action="{{ url_for('reject_workshop', workshop_id=workshop.id) }}"
+                    onsubmit="return confirm('Reject this workshop?');">
+                    <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                  </form>
+                </div>
+              {% elif workshop.status == 'rejected' %}
+                <span class="text-sm text-muted">This workshop was rejected.</span>
+                <form method="POST"
+                  action="{{ url_for('delete_workshop', workshop_id=workshop.id) }}"
+                  onsubmit="return confirm('Delete this workshop?');">
+                  <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+              {% else %}
+                <span class="text-sm" style="color:var(--success); font-weight:600;">
+                  Live
+                </span>
+                <form method="POST"
+                  action="{{ url_for('delete_workshop', workshop_id=workshop.id) }}"
+                  onsubmit="return confirm('Delete this workshop?');">
+                  <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+              {% endif %}
+
+            {% elif session.get('user_id') %}
+              <!-- Student or Host footer -->
+              {% if workshop.id in registered_ids %}
+                <span class="text-sm" style="color:var(--success); font-weight:600;">
+                  You are registered
+                </span>
+                <form method="POST"
+                  action="{{ url_for('unregister_workshop', workshop_id=workshop.id) }}">
+                  <button type="submit" class="btn btn-ghost btn-sm">Cancel Registration</button>
+                </form>
+              {% else %}
+                <form method="POST"
+                  action="{{ url_for('join_workshop', workshop_id=workshop.id) }}">
+                  <button type="submit" class="btn btn-primary btn-sm">Register</button>
+                </form>
+              {% endif %}
+
+            {% else %}
+              <!-- Guest footer -->
+              <span class="text-sm text-muted">Sign in to register</span>
+              <a href="{{ url_for('login') }}" class="btn btn-ghost btn-sm">Sign In</a>
+            {% endif %}
+
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+  {% else %}
+    <div class="empty-state">
+      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24"
+        fill="none" stroke="#cbd5e1" stroke-width="1.5"
+        stroke-linecap="round" stroke-linejoin="round"
+        style="margin: 0 auto 1rem;">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      {% if session.get('role') == 'admin' %}
+        <p>No workshops yet.</p>
+        <a href="{{ url_for('create_workshop') }}" class="btn btn-primary">
+          Create Workshop
+        </a>
+      {% else %}
+        <p>No workshops are available yet. Check back soon.</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

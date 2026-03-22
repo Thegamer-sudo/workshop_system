@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% block title %}Host Dashboard — Student Workshop{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+  <!-- Page Header — no submit button here -->
+  <div class="page-header">
+    <div>
+      <h1>Host Dashboard</h1>
+      <p>Welcome, <strong>{{ session.get('name') }}</strong>. Manage your workshops below.</p>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="admin-stats-row">
+
+    <div class="admin-stat-card">
+      <div class="admin-stat-left teal">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+      <div>
+        <div class="admin-stat-num">{{ my_workshops|length }}</div>
+        <div class="admin-stat-label">My Workshops</div>
+      </div>
+    </div>
+
+    <div class="admin-stat-card">
+      <div class="admin-stat-left navy">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 11 12 14 22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+      </div>
+      <div>
+        <div class="admin-stat-num">
+          {% set approved = [] %}
+          {% for w in my_workshops %}
+            {% if w.status == 'approved' %}{% set _ = approved.append(1) %}{% endif %}
+          {% endfor %}
+          {{ approved|length }}
+        </div>
+        <div class="admin-stat-label">Approved</div>
+      </div>
+    </div>
+
+    <div class="admin-stat-card">
+      <div class="admin-stat-left green">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+        </svg>
+      </div>
+      <div>
+        <div class="admin-stat-num">{{ attending|length }}</div>
+        <div class="admin-stat-label">Attending</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="border-top: 1px solid var(--grey-300); margin: 2rem 0;"></div>
+
+  <!-- Workshops I Host -->
+  <div class="section-title-bar" style="margin-bottom: 1rem;">
+    <h2 class="section-title">Workshops I Host</h2>
+    <a href="{{ url_for('host_create_workshop') }}" class="btn btn-primary btn-sm">
+      + Submit New
+    </a>
+  </div>
+
+  {% if my_workshops %}
+    <div class="table-wrapper" style="margin-bottom: 2.5rem;">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Title</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Registrations</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for w in my_workshops %}
+            <tr>
+              <td style="color:var(--grey-500); font-size:0.8rem;">{{ loop.index }}</td>
+              <td><strong style="color:var(--navy);">{{ w.title }}</strong></td>
+              <td style="white-space:nowrap;">{{ w.date }}</td>
+              <td style="white-space:nowrap;">{{ w.start_time }} &ndash; {{ w.end_time }}</td>
+              <td>
+                <span class="badge badge-navy">
+                  {{ w.registration_count }}
+                  student{{ 's' if w.registration_count != 1 }}
+                </span>
+              </td>
+              <td>
+                {% if w.status == 'pending' %}
+                  <span class="badge" style="background:#fef9c3; color:#92400e;">
+                    Pending Approval
+                  </span>
+                {% elif w.status == 'approved' %}
+                  {% if w.date >= today %}
+                    <span class="badge badge-teal">Approved</span>
+                  {% else %}
+                    <span class="badge" style="background:#f1f5f9; color:#64748b;">Completed</span>
+                  {% endif %}
+                {% else %}
+                  <span class="badge badge-red">Rejected</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if w.status in ('pending', 'rejected') %}
+                  <form method="POST"
+                    action="{{ url_for('host_delete_workshop', workshop_id=w.id) }}"
+                    onsubmit="return confirm('Delete this workshop?');">
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                  </form>
+                {% else %}
+                  <span class="text-sm text-muted">Live</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  {% else %}
+    <div class="empty-state" style="margin-bottom: 2rem;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24"
+        fill="none" stroke="#cbd5e1" stroke-width="1.5"
+        stroke-linecap="round" stroke-linejoin="round"
+        style="margin: 0 auto 1rem;">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      <p>You have not submitted any workshops yet.</p>
+      <a href="{{ url_for('host_create_workshop') }}" class="btn btn-primary">
+        Submit Your First Workshop
+      </a>
+    </div>
+  {% endif %}
+
+  <!-- Workshops I Am Attending -->
+  <div class="section-title-bar" style="margin-bottom: 1rem;">
+    <h2 class="section-title">Workshops I Am Attending</h2>
+    <a href="{{ url_for('workshops') }}" class="btn btn-ghost btn-sm">Browse All</a>
+  </div>
+
+  {% if attending %}
+    <div class="workshop-grid">
+      {% for w in attending %}
+        <div class="card workshop-card">
+          <div class="card-header">
+            <h3>{{ w.title }}</h3>
+            {% if w.date >= today %}
+              <span class="badge badge-teal">Upcoming</span>
+            {% else %}
+              <span class="badge" style="background:#f1f5f9; color:#64748b;">Completed</span>
+            {% endif %}
+          </div>
+          <div class="card-body">
+            <div class="workshop-meta">
+              <div class="meta-row">
+                <div class="meta-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                </div>
+                <span>{{ w.date }}</span>
+              </div>
+              <div class="meta-row">
+                <div class="meta-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                </div>
+                <span>{{ w.start_time }} &ndash; {{ w.end_time }}</span>
+              </div>
+              <div class="meta-row">
+                <div class="meta-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </div>
+                <span>{{ w.created_by_name }}</span>
+              </div>
+            </div>
+            <p class="workshop-desc">{{ w.description }}</p>
+          </div>
+          <div class="card-footer">
+            {% if w.date >= today %}
+              <span class="text-sm" style="color:var(--success); font-weight:600;">Confirmed</span>
+              <form method="POST"
+                action="{{ url_for('unregister_workshop', workshop_id=w.id) }}">
+                <button type="submit" class="btn btn-ghost btn-sm">Cancel</button>
+              </form>
+            {% else %}
+              <span class="text-sm text-muted">This workshop has passed.</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+  {% else %}
+    <div class="empty-state">
+      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24"
+        fill="none" stroke="#cbd5e1" stroke-width="1.5"
+        stroke-linecap="round" stroke-linejoin="round"
+        style="margin: 0 auto 1rem;">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+      </svg>
+      <p>You are not attending any workshops yet.</p>
+      <a href="{{ url_for('workshops') }}" class="btn btn-primary">Browse Workshops</a>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% block title %}Admin Panel — Student Workshop{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1>Admin Panel</h1>
+      <p>Manage workshops, approve submissions and oversee the platform.</p>
+    </div>
+  </div>
+
+  <!-- Stats Row — cards are clickable where relevant -->
+  <div class="admin-stats-row">
+
+    <div class="admin-stat-card">
+      <div class="admin-stat-left teal">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+      <div>
+        <div class="admin-stat-num">{{ all_workshops|length }}</div>
+        <div class="admin-stat-label">Total Workshops</div>
+      </div>
+    </div>
+
+    <a href="{{ url_for('admin_students') }}" class="admin-stat-card admin-stat-link">
+      <div class="admin-stat-left navy">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <div>
+        <div class="admin-stat-num">{{ total_students }}</div>
+        <div class="admin-stat-label">Students</div>
+      </div>
+    </a>
+
+    <a href="{{ url_for('admin_hosts') }}" class="admin-stat-card admin-stat-link">
+      <div class="admin-stat-left green">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <div>
+        <div class="admin-stat-num">{{ total_hosts }}</div>
+        <div class="admin-stat-label">Hosts</div>
+      </div>
+    </a>
+
+    <div class="admin-stat-card">
+      <div class="admin-stat-left teal">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 11 12 14 22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+      </div>
+      <div>
+        <div class="admin-stat-num">{{ total_registrations }}</div>
+        <div class="admin-stat-label">Registrations</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="border-top: 1px solid var(--grey-300); margin: 2rem 0;"></div>
+
+  <!-- Quick Actions -->
+  <div class="section-title-bar" style="margin-bottom: 1rem;">
+    <h2 class="section-title">Quick Actions</h2>
+  </div>
+
+  <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2.5rem;">
+    <a href="{{ url_for('workshops') }}" class="btn btn-primary">
+      View All Workshops
+    </a>
+    <a href="{{ url_for('create_workshop') }}" class="btn btn-ghost">
+      + Create Workshop
+    </a>
+  </div>
+
+  <div style="border-top: 1px solid var(--grey-300); margin: 2rem 0;"></div>
+
+  <!-- Pending Approval -->
+  <div class="section-title-bar" style="margin-bottom: 1rem;">
+    <h2 class="section-title">Pending Approval</h2>
+    {% if pending_workshops %}
+      <span class="badge badge-red">{{ pending_workshops|length }} awaiting</span>
+    {% else %}
+      <span class="badge" style="background:#f1f5f9; color:#64748b;">None pending</span>
+    {% endif %}
+  </div>
+
+  {% if pending_workshops %}
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Host</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for w in pending_workshops %}
+            <tr>
+              <td>
+                <strong style="color: var(--navy);">{{ w.title }}</strong>
+                <div class="text-sm text-muted" style="margin-top: 2px; max-width: 260px;">
+                  {{ w.description[:65] }}{% if w.description|length > 65 %}...{% endif %}
+                </div>
+              </td>
+              <td style="font-size: 0.85rem;">{{ w.created_by_name }}</td>
+              <td style="white-space: nowrap;">{{ w.date }}</td>
+              <td style="white-space: nowrap;">{{ w.start_time }} &ndash; {{ w.end_time }}</td>
+              <td>
+                <div style="display: flex; gap: 0.5rem;">
+                  <form method="POST"
+                    action="{{ url_for('approve_workshop', workshop_id=w.id) }}">
+                    <button type="submit" class="btn btn-primary btn-sm">Approve</button>
+                  </form>
+                  <form method="POST"
+                    action="{{ url_for('reject_workshop', workshop_id=w.id) }}"
+                    onsubmit="return confirm('Reject this workshop?');">
+                    <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  {% else %}
+    <div style="
+      background: white;
+      border: 1px solid var(--grey-300);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      text-align: center;
+      color: var(--grey-500);
+      font-size: 0.88rem;
+    ">
+      No workshops are currently awaiting approval.
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% block title %}Create Account — Student Workshop{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+
+    <div class="auth-card-header">
+      <h2>Create Account</h2>
+      <p>Join the Student Workshop platform</p>
+    </div>
+
+    <div class="auth-card-body">
+      <form method="POST" action="{{ url_for('register') }}" id="registerForm" novalidate>
+
+        <!-- Full Name -->
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" name="name"
+            placeholder="e.g. John Doe" required
+            value="{{ request.form.get('name', '') }}"/>
+        </div>
+
+        <!-- Email -->
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" name="email"
+            placeholder="you@example.com" required
+            value="{{ request.form.get('email', '') }}"/>
+        </div>
+
+        <!-- Role selector -->
+        <div class="form-group">
+          <label>I am registering as</label>
+          <div class="role-selector">
+
+            <label class="role-option" id="roleStudent">
+              <input type="radio" name="role" value="student"
+                {% if request.form.get('role', 'student') == 'student' %}checked{% endif %}/>
+              <div class="role-card">
+                <div class="role-icon navy">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="role-name">Student</div>
+                  <div class="role-desc">Browse and attend workshops</div>
+                </div>
+              </div>
+            </label>
+
+            <label class="role-option" id="roleHost">
+              <input type="radio" name="role" value="host"
+                {% if request.form.get('role') == 'host' %}checked{% endif %}/>
+              <div class="role-card">
+                <div class="role-icon teal">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="role-name">Host</div>
+                  <div class="role-desc">Create and manage workshops</div>
+                </div>
+              </div>
+            </label>
+
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="password-wrapper">
+            <input type="password" id="password" name="password"
+              placeholder="Create a password"
+              required minlength="8" maxlength="16"/>
+            <button type="button" class="password-toggle" id="togglePassword">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+          <div class="form-hint">8 to 16 characters.</div>
+          <div style="margin-top: 0.6rem;">
+            <div style="height:4px; background:var(--grey-300); border-radius:999px; overflow:hidden;">
+              <div id="strengthBar" style="height:100%; width:0%; border-radius:999px;
+                transition: width 0.3s ease, background 0.3s ease;"></div>
+            </div>
+            <p id="strengthLabel" class="form-hint" style="margin-top:0.3rem;"></p>
+          </div>
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="form-group">
+          <label for="confirm_password">Confirm Password</label>
+          <div class="password-wrapper">
+            <input type="password" id="confirm_password" name="confirm_password"
+              placeholder="Repeat your password"
+              required minlength="8" maxlength="16"/>
+            <button type="button" class="password-toggle" id="toggleConfirm">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+          <p id="matchMessage" class="form-hint" style="margin-top:0.3rem;"></p>
+        </div>
+
+        <!-- POPIA Notice -->
+        <div style="
+          background: var(--grey-100);
+          border-radius: var(--radius);
+          padding: 0.85rem 1rem;
+          margin-bottom: 1.2rem;
+          font-size: 0.78rem;
+          color: var(--grey-500);
+          line-height: 1.5;
+          border-left: 3px solid var(--grey-300);
+        ">
+          <strong style="color: var(--grey-700);">Privacy Notice (POPIA)</strong><br>
+          By registering, you consent to the collection of your name and email
+          for the purpose of managing workshop registrations. Your data is stored
+          securely and will not be shared with third parties.
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full">
+          Create Account &rarr;
+        </button>
+
+      </form>
+
+      <!-- Bottom link — no divider line -->
+      <p style="
+        text-align: center;
+        margin-top: 1.5rem;
+        font-size: 0.85rem;
+        color: var(--grey-500);
+        padding-top: 1.2rem;
+        border-top: 1px solid var(--grey-100);
+      ">
+        Already have an account?
+        <a href="{{ url_for('login') }}" style="font-weight: 600; color: var(--teal);">
+          Sign in here
+        </a>
+      </p>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Role selector highlight
+  document.querySelectorAll('input[name="role"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      document.querySelectorAll('.role-option').forEach(el => el.classList.remove('selected'));
+      radio.closest('.role-option').classList.add('selected');
+    });
+  });
+
+  document.querySelectorAll('input[name="role"]').forEach(radio => {
+    if (radio.checked) radio.closest('.role-option').classList.add('selected');
+  });
+
+  // Password toggles
+  function makeToggle(btnId, inputId) {
+    document.getElementById(btnId).addEventListener('click', () => {
+      const input = document.getElementById(inputId);
+      input.type  = input.type === 'password' ? 'text' : 'password';
+    });
+  }
+  makeToggle('togglePassword', 'password');
+  makeToggle('toggleConfirm',  'confirm_password');
+
+  // Strength bar
+  const pw  = document.getElementById('password');
+  const bar = document.getElementById('strengthBar');
+  const lbl = document.getElementById('strengthLabel');
+
+  pw.addEventListener('input', () => {
+    const v = pw.value;
+    let score = 0;
+    if (v.length >= 8)           score++;
+    if (v.length >= 12)          score++;
+    if (/[A-Z]/.test(v))         score++;
+    if (/[0-9]/.test(v))         score++;
+    if (/[^A-Za-z0-9]/.test(v)) score++;
+
+    const levels = [
+      { label: '',          color: 'transparent', width: '0%'   },
+      { label: 'Weak',      color: '#ef4444',     width: '25%'  },
+      { label: 'Fair',      color: '#f59e0b',     width: '50%'  },
+      { label: 'Good',      color: '#3b82f6',     width: '75%'  },
+      { label: 'Strong',    color: '#22c55e',     width: '90%'  },
+      { label: 'Excellent', color: '#0d9488',     width: '100%' },
+    ];
+    const level          = levels[Math.min(score, 5)];
+    bar.style.width      = v.length === 0 ? '0%' : level.width;
+    bar.style.background = level.color;
+    lbl.textContent      = v.length === 0 ? '' : level.label;
+    lbl.style.color      = level.color;
+  });
+
+  // Match checker
+  const confirm  = document.getElementById('confirm_password');
+  const matchMsg = document.getElementById('matchMessage');
+
+  function checkMatch() {
+    if (!confirm.value) { matchMsg.textContent = ''; return; }
+    if (pw.value === confirm.value) {
+      matchMsg.textContent = 'Passwords match';
+      matchMsg.style.color = '#22c55e';
+    } else {
+      matchMsg.textContent = 'Passwords do not match';
+      matchMsg.style.color = '#ef4444';
+    }
+  }
+
+  confirm.addEventListener('input', checkMatch);
+  pw.addEventListener('input', checkMatch);
+
+  document.getElementById('registerForm').addEventListener('submit', e => {
+    if (pw.value !== confirm.value) {
+      e.preventDefault();
+      matchMsg.textContent = 'Passwords do not match';
+      matchMsg.style.color = '#ef4444';
+      confirm.focus();
+    }
+  });
+</script>
+{% endblock %}

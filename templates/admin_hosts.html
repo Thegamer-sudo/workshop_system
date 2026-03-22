@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% block title %}Hosts — Admin{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div>
+      <h1>Registered Hosts</h1>
+      <p>View, archive, or remove host accounts from the platform.</p>
+    </div>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-ghost">&larr; Back</a>
+  </div>
+
+  <!-- Stats quick row -->
+  <div style="display:flex; gap:1rem; margin-bottom:2rem; flex-wrap:wrap;">
+    <div style="
+      background:white; border-radius:var(--radius);
+      border:1px solid rgba(0,0,0,0.06);
+      box-shadow:var(--shadow-sm);
+      padding:1rem 1.5rem;
+      display:flex; align-items:center; gap:0.75rem;
+    ">
+      <span style="font-size:1.6rem; font-weight:700; color:var(--navy);">
+        {{ hosts|length }}
+      </span>
+      <span style="font-size:0.8rem; color:var(--grey-500); font-weight:500;">
+        Total Hosts
+      </span>
+    </div>
+    <div style="
+      background:white; border-radius:var(--radius);
+      border:1px solid rgba(0,0,0,0.06);
+      box-shadow:var(--shadow-sm);
+      padding:1rem 1.5rem;
+      display:flex; align-items:center; gap:0.75rem;
+    ">
+      <span style="font-size:1.6rem; font-weight:700; color:#92400e;">
+        {% set archived_count = [] %}
+        {% for h in hosts %}
+          {% if h.archived %}{% set _ = archived_count.append(1) %}{% endif %}
+        {% endfor %}
+        {{ archived_count|length }}
+      </span>
+      <span style="font-size:0.8rem; color:var(--grey-500); font-weight:500;">
+        Archived
+      </span>
+    </div>
+  </div>
+
+  {% if hosts %}
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Workshops Created</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for host in hosts %}
+            <tr class="{{ 'row-archived' if host.archived }}">
+              <td style="color:var(--grey-500); font-size:0.8rem;">{{ loop.index }}</td>
+              <td>
+                <strong style="color:var(--navy);">{{ host.name }}</strong>
+              </td>
+              <td style="font-size:0.85rem; color:var(--grey-500);">{{ host.email }}</td>
+              <td>
+                <span class="badge badge-teal">
+                  {{ host.workshop_count }}
+                  workshop{{ 's' if host.workshop_count != 1 }}
+                </span>
+              </td>
+              <td>
+                {% if host.archived %}
+                  <span class="badge" style="background:#fef3c7; color:#92400e;">
+                    Archived
+                  </span>
+                {% else %}
+                  <span class="badge badge-green">Active</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+                  <form method="POST"
+                    action="{{ url_for('archive_user', user_id=host.id) }}">
+                    <button type="submit" class="btn btn-archive btn-sm">
+                      {{ 'Restore' if host.archived else 'Archive' }}
+                    </button>
+                  </form>
+                  <form method="POST"
+                    action="{{ url_for('delete_user', user_id=host.id) }}"
+                    onsubmit="return confirm('Permanently delete {{ host.name }}? This cannot be undone.');">
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  {% else %}
+    <div class="empty-state">
+      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24"
+        fill="none" stroke="#cbd5e1" stroke-width="1.5"
+        stroke-linecap="round" stroke-linejoin="round"
+        style="margin:0 auto 1rem;">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      <p>No hosts have registered yet.</p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}Submit Workshop — Student Workshop{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div>
+      <h1>Submit a Workshop</h1>
+      <p>Your workshop will be reviewed by the admin before going live.</p>
+    </div>
+    <a href="{{ url_for('host_dashboard') }}" class="btn btn-ghost">&larr; Back</a>
+  </div>
+
+  <div style="
+    background: #dbeafe;
+    border: 1px solid #93c5fd;
+    border-left: 4px solid #3b82f6;
+    border-radius: var(--radius);
+    padding: 0.85rem 1.1rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.88rem;
+    color: #1e40af;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+  ">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+      viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+      style="flex-shrink:0; margin-top:1px;">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="12"/>
+      <line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    Once submitted, the admin will review and approve your workshop before students can see it.
+  </div>
+
+  <div class="card" style="max-width: 700px;">
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('host_create_workshop') }}">
+
+        <!-- Title -->
+        <div class="form-group">
+          <label for="title">Workshop Title</label>
+          <input type="text" id="title" name="title"
+            placeholder="e.g. Introduction to Machine Learning"
+            required maxlength="100"/>
+        </div>
+
+        <!-- Date -->
+        <div class="form-group">
+          <label for="date">Date</label>
+          <input type="date" id="date" name="date"
+            required min="{{ today }}"/>
+        </div>
+
+        <!-- Start and End Time -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label for="start_time">Start Time</label>
+            <input type="time" id="start_time" name="start_time" required/>
+          </div>
+          <div class="form-group">
+            <label for="end_time">End Time</label>
+            <input type="time" id="end_time" name="end_time" required/>
+          </div>
+        </div>
+        <p class="form-hint" style="margin-top: -0.8rem; margin-bottom: 1rem;">
+          End time must be after start time.
+        </p>
+
+        <!-- Description -->
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" name="description"
+            placeholder="What will students learn? What should they bring or prepare?"
+            required maxlength="500" rows="4"></textarea>
+          <div class="form-hint">
+            <span id="charCount">0</span> / 500 characters
+          </div>
+        </div>
+
+        <!-- Teams Link -->
+        <div class="form-group">
+          <label for="teams_link">
+            Microsoft Teams Link
+            <span style="font-weight:400; color:var(--grey-500); font-size:0.78rem;">
+              — optional
+            </span>
+          </label>
+          <input type="url" id="teams_link" name="teams_link"
+            placeholder="https://teams.microsoft.com/l/meetup-join/..."/>
+          <div class="form-hint">
+            Paste your Teams meeting link here. Registered students will see a Join button.
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+          <button type="submit" class="btn btn-primary">Submit for Approval</button>
+          <a href="{{ url_for('host_dashboard') }}" class="btn btn-ghost">Cancel</a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const textarea  = document.getElementById('description');
+  const charCount = document.getElementById('charCount');
+  textarea.addEventListener('input', () => {
+    const len = textarea.value.length;
+    charCount.textContent = len;
+    charCount.style.color = len > 450 ? '#ef4444' : 'var(--grey-500)';
+  });
+  document.getElementById('date').min = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

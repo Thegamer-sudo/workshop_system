@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}Sign In — Student Workshop{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+
+    <div class="auth-card-header">
+      <h2>Welcome Back</h2>
+      <p>Sign in to your account to continue</p>
+    </div>
+
+    <div class="auth-card-body">
+
+      <form method="POST" action="{{ url_for('login') }}" novalidate>
+
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="you@example.com"
+            required
+            autocomplete="email"
+            value="{{ request.form.get('email', '') }}"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="password-wrapper">
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Enter your password"
+              required
+              autocomplete="current-password"
+            />
+            <button type="button" class="password-toggle" id="togglePassword" aria-label="Show password">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Forgot password -->
+        <div style="text-align: right; margin-top: -0.5rem; margin-bottom: 1.3rem;">
+          <a href="#"
+            style="font-size: 0.82rem; color: var(--grey-500); text-decoration: none;"
+            onclick="alert('Password reset via email is coming soon.'); return false;">
+            Forgot password?
+          </a>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full">
+          Sign In &rarr;
+        </button>
+
+      </form>
+
+      <!-- Simple bottom link — no divider line -->
+      <p style="
+        text-align: center;
+        margin-top: 1.5rem;
+        font-size: 0.85rem;
+        color: var(--grey-500);
+        padding-top: 1.2rem;
+        border-top: 1px solid var(--grey-100);
+      ">
+        Don't have an account?
+        <a href="{{ url_for('register') }}" style="font-weight: 600; color: var(--teal);">
+          Create one here
+        </a>
+      </p>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById('togglePassword').addEventListener('click', function() {
+    const input = document.getElementById('password');
+    input.type  = input.type === 'password' ? 'text' : 'password';
+  });
+</script>
+{% endblock %}
