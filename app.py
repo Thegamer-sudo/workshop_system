@@ -24,18 +24,16 @@ ADMIN_PASSWORD = 'admin123'
 ADMIN_NAME     = 'Administrator'
 
 # ============================================
-#  DATABASE CONNECTION (Works on both SQLite and PostgreSQL)
+#  DATABASE CONNECTION
 # ============================================
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 def get_db():
     if DATABASE_URL:
-        # Production: PostgreSQL on Render
         conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
         return conn
     else:
-        # Local development: SQLite
         conn = sqlite3.connect('workshop_system.db')
         conn.row_factory = sqlite3.Row
         return conn
@@ -1022,7 +1020,7 @@ def host_dashboard():
             FROM workshops w
             LEFT JOIN registrations r ON r.workshop_id = w.id
             WHERE w.created_by = %s
-            GROUP BY w.id
+            GROUP BY w.id, w.title, w.description, w.date, w.start_time, w.end_time, w.teams_link, w.created_by, w.status
             ORDER BY w.date ASC
         ''', (uid,))
     else:
@@ -1226,16 +1224,21 @@ def admin_dashboard():
     cursor = conn.cursor()
 
     if DATABASE_URL:
+        # PostgreSQL version - proper GROUP BY with all columns
         cursor.execute('''
-            SELECT w.*, u.name AS created_by_name,
+            SELECT w.id, w.title, w.description, w.date, w.start_time, w.end_time, 
+                   w.teams_link, w.created_by, w.status,
+                   u.name AS created_by_name,
                    COUNT(r.id) AS registration_count
             FROM workshops w
             JOIN users u ON w.created_by = u.id
             LEFT JOIN registrations r ON r.workshop_id = w.id
-            GROUP BY w.id
+            GROUP BY w.id, w.title, w.description, w.date, w.start_time, w.end_time, 
+                     w.teams_link, w.created_by, w.status, u.name
             ORDER BY w.date ASC, w.start_time ASC
         ''')
     else:
+        # SQLite version
         cursor.execute('''
             SELECT w.*, u.name AS created_by_name,
                    COUNT(r.id) AS registration_count
@@ -1267,21 +1270,24 @@ def admin_dashboard():
 
     if DATABASE_URL:
         cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'student'")
+        total_students = cursor.fetchone()[0]
     else:
         cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'student'")
-    total_students = cursor.fetchone()[0]
+        total_students = cursor.fetchone()[0]
 
     if DATABASE_URL:
         cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'host'")
+        total_hosts = cursor.fetchone()[0]
     else:
         cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'host'")
-    total_hosts = cursor.fetchone()[0]
+        total_hosts = cursor.fetchone()[0]
 
     if DATABASE_URL:
         cursor.execute("SELECT COUNT(*) FROM registrations")
+        total_registrations = cursor.fetchone()[0]
     else:
         cursor.execute("SELECT COUNT(*) FROM registrations")
-    total_registrations = cursor.fetchone()[0]
+        total_registrations = cursor.fetchone()[0]
 
     conn.close()
     return render_template(
@@ -1482,7 +1488,7 @@ def admin_students():
             FROM users u
             LEFT JOIN registrations r ON r.user_id = u.id
             WHERE u.role = 'student'
-            GROUP BY u.id
+            GROUP BY u.id, u.name, u.email, u.archived
             ORDER BY u.archived ASC, u.name ASC
         ''')
     else:
@@ -1516,7 +1522,7 @@ def admin_hosts():
             FROM users u
             LEFT JOIN workshops w ON w.created_by = u.id
             WHERE u.role = 'host'
-            GROUP BY u.id
+            GROUP BY u.id, u.name, u.email, u.archived
             ORDER BY u.archived ASC, u.name ASC
         ''')
     else:
