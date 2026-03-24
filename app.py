@@ -170,7 +170,10 @@ def ensure_admin_in_db():
     conn = get_db()
     cursor = conn.cursor()
     
-    cursor.execute('SELECT id FROM users WHERE email = ?', (ADMIN_EMAIL,))
+    if DATABASE_URL:
+        cursor.execute('SELECT id FROM users WHERE email = %s', (ADMIN_EMAIL,))
+    else:
+        cursor.execute('SELECT id FROM users WHERE email = ?', (ADMIN_EMAIL,))
     existing = cursor.fetchone()
     
     if not existing:
@@ -199,8 +202,8 @@ def times_overlap(start_a, end_a, start_b, end_b):
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('goodenough245@gmail.com')
-app.config['MAIL_PASSWORD'] = os.environ.get('jhfq xvna tyuj hpav')
+app.config['MAIL_USERNAME'] = 'goodenough245@gmail.com'
+app.config['MAIL_PASSWORD'] = 'jhfq xvna tyuj hpav'
 app.config['MAIL_DEFAULT_SENDER'] = 'Student Workshop'
 
 mail = Mail(app)
@@ -228,7 +231,7 @@ def send_welcome_email(user_name, user_email):
         <div style="padding: 30px 25px;">
             <h2 style="color: #0f172a;">Welcome, {user_name}! 👋</h2>
             <p style="color: #475569;">Your account has been successfully created.</p>
-            <a href="https://your-app.onrender.com/workshops" style="display: inline-block; background: #0d9488; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px;">Browse Workshops →</a>
+            <a href="https://workshop-system-ex1a.onrender.com/workshops" style="display: inline-block; background: #0d9488; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px;">Browse Workshops →</a>
         </div>
     </div>
     """
@@ -255,7 +258,7 @@ def send_registration_email(user_name, user_email, workshop_title, workshop_date
                 <p><strong>⏰ Time:</strong> {workshop_time}</p>
                 {join_button}
             </div>
-            <a href="https://your-app.onrender.com/dashboard" style="background: #0f172a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px;">📊 My Dashboard</a>
+            <a href="https://workshop-system-ex1a.onrender.com/dashboard" style="background: #0f172a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px;">📊 My Dashboard</a>
         </div>
     </div>
     """
@@ -272,7 +275,7 @@ def send_workshop_approved_email(host_name, host_email, workshop_title):
         <div style="padding: 30px 25px;">
             <h2>Great news, {host_name}!</h2>
             <p>Your workshop <strong>"{workshop_title}"</strong> is now live!</p>
-            <a href="https://your-app.onrender.com/host/dashboard" style="display: inline-block; background: #0d9488; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px;">Go to Host Dashboard →</a>
+            <a href="https://workshop-system-ex1a.onrender.com/host/dashboard" style="display: inline-block; background: #0d9488; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px;">Go to Host Dashboard →</a>
         </div>
     </div>
     """
@@ -1602,12 +1605,9 @@ def delete_user(user_id):
 #  START
 # ============================================
 
-if __name__ == '__main__':
-    init_db()
-    ensure_admin_in_db()
-    app.run(debug=True)
-
-    # Force database initialization on startup
 with app.app_context():
     init_db()
     ensure_admin_in_db()
+
+if __name__ == '__main__':
+    app.run(debug=True)
