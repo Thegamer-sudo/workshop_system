@@ -201,7 +201,7 @@ app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.environ.get('goodenough245@gmail.com')
 app.config['MAIL_PASSWORD'] = os.environ.get('jhfq xvna tyuj hpav')
-app.config['MAIL_DEFAULT_SENDER'] = f'Student Workshop <{app.config["MAIL_USERNAME"]}>'
+app.config['MAIL_DEFAULT_SENDER'] = 'Student Workshop'
 
 mail = Mail(app)
 
@@ -1606,3 +1606,8 @@ if __name__ == '__main__':
     init_db()
     ensure_admin_in_db()
     app.run(debug=True)
+
+    # Force database initialization on startup
+with app.app_context():
+    init_db()
+    ensure_admin_in_db()
