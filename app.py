@@ -1,5 +1,6 @@
 # ============================================
 #  app.py — Student Workshop System
+#  Works with SQLite (local) + PostgreSQL (Render)
 # ============================================
 
 from flask import (
@@ -7,7 +8,10 @@ from flask import (
     redirect, url_for, session, flash, jsonify
 )
 from flask_mail import Mail, Message
+import os
 import sqlite3
+import psycopg2
+from psycopg2.extras import RealDictCursor
 import hashlib
 import secrets
 from datetime import date, timedelta, datetime
@@ -15,94 +19,145 @@ from datetime import date, timedelta, datetime
 app = Flask(__name__)
 app.secret_key = 'student-workshop-secret-2026'
 
-DATABASE = 'workshop_system.db'
-
 ADMIN_EMAIL    = 'admin@test.com'
 ADMIN_PASSWORD = 'admin123'
 ADMIN_NAME     = 'Administrator'
 
 # ============================================
-#  EMAIL CONFIGURATION — REPLACE WITH YOUR INFO
+#  DATABASE CONNECTION (Works on both SQLite and PostgreSQL)
 # ============================================
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'YOUR_EMAIL@gmail.com'      # <-- REPLACE
-app.config['MAIL_PASSWORD'] = 'YOUR_APP_PASSWORD'         # <-- REPLACE
-app.config['MAIL_DEFAULT_SENDER'] = 'Student Workshop <YOUR_EMAIL@gmail.com>'
 
-mail = Mail(app)
-
-
-# ============================================
-#  DATABASE
-# ============================================
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
 def get_db():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
+    if DATABASE_URL:
+        # Production: PostgreSQL on Render
+        conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+        return conn
+    else:
+        # Local development: SQLite
+        conn = sqlite3.connect('workshop_system.db')
+        conn.row_factory = sqlite3.Row
+        return conn
 
 
 def init_db():
     conn = get_db()
-    c = conn.cursor()
+    cursor = conn.cursor()
 
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id       INTEGER PRIMARY KEY AUTOINCREMENT,
-            name     TEXT    NOT NULL,
-            email    TEXT    NOT NULL UNIQUE,
-            password TEXT    NOT NULL,
-            role     TEXT    NOT NULL DEFAULT 'student',
-            archived INTEGER NOT NULL DEFAULT 0
-        )
-    ''')
-
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS workshops (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            title       TEXT NOT NULL,
-            description TEXT NOT NULL,
-            date        TEXT NOT NULL,
-            start_time  TEXT NOT NULL,
-            end_time    TEXT NOT NULL,
-            teams_link  TEXT,
-            created_by  INTEGER NOT NULL,
-            status      TEXT NOT NULL DEFAULT 'pending'
-        )
-    ''')
-
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS registrations (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id     INTEGER NOT NULL,
-            workshop_id INTEGER NOT NULL,
-            UNIQUE(user_id, workshop_id)
-        )
-    ''')
-
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS feedback (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            workshop_id INTEGER NOT NULL,
-            user_id     INTEGER NOT NULL,
-            rating      INTEGER NOT NULL,
-            comment     TEXT,
-            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(workshop_id, user_id)
-        )
-    ''')
-
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS reset_tokens (
-            id         INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id    INTEGER NOT NULL,
-            token      TEXT NOT NULL UNIQUE,
-            expires_at TIMESTAMP NOT NULL
-        )
-    ''')
-
+    if DATABASE_URL:
+        # PostgreSQL syntax
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE,
+                password TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'student',
+                archived INTEGER NOT NULL DEFAULT 0
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS workshops (
+                id SERIAL PRIMARY KEY,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                date TEXT NOT NULL,
+                start_time TEXT NOT NULL,
+                end_time TEXT NOT NULL,
+                teams_link TEXT,
+                created_by INTEGER NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending'
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS registrations (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                workshop_id INTEGER NOT NULL,
+                UNIQUE(user_id, workshop_id)
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS feedback (
+                id SERIAL PRIMARY KEY,
+                workshop_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                rating INTEGER NOT NULL,
+                comment TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(workshop_id, user_id)
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS reset_tokens (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                token TEXT NOT NULL UNIQUE,
+                expires_at TIMESTAMP NOT NULL
+            )
+        ''')
+    else:
+        # SQLite syntax
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE,
+                password TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'student',
+                archived INTEGER NOT NULL DEFAULT 0
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS workshops (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                date TEXT NOT NULL,
+                start_time TEXT NOT NULL,
+                end_time TEXT NOT NULL,
+                teams_link TEXT,
+                created_by INTEGER NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending'
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS registrations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                workshop_id INTEGER NOT NULL,
+                UNIQUE(user_id, workshop_id)
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS feedback (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workshop_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                rating INTEGER NOT NULL,
+                comment TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(workshop_id, user_id)
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS reset_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token TEXT NOT NULL UNIQUE,
+                expires_at TIMESTAMP NOT NULL
+            )
+        ''')
+    
     conn.commit()
     conn.close()
 
@@ -113,15 +168,24 @@ def hash_password(password):
 
 def ensure_admin_in_db():
     conn = get_db()
-    existing = conn.execute(
-        'SELECT id FROM users WHERE email = ?', (ADMIN_EMAIL,)
-    ).fetchone()
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT id FROM users WHERE email = ?', (ADMIN_EMAIL,))
+    existing = cursor.fetchone()
+    
     if not existing:
-        conn.execute('''
-            INSERT OR IGNORE INTO users (name, email, password, role, archived)
-            VALUES (?, ?, 'ADMIN_ACCOUNT', 'admin', 0)
-        ''', (ADMIN_NAME, ADMIN_EMAIL))
+        if DATABASE_URL:
+            cursor.execute('''
+                INSERT INTO users (name, email, password, role, archived)
+                VALUES (%s, %s, %s, %s, %s)
+            ''', (ADMIN_NAME, ADMIN_EMAIL, 'ADMIN_ACCOUNT', 'admin', 0))
+        else:
+            cursor.execute('''
+                INSERT INTO users (name, email, password, role, archived)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (ADMIN_NAME, ADMIN_EMAIL, 'ADMIN_ACCOUNT', 'admin', 0))
         conn.commit()
+    
     conn.close()
 
 
@@ -130,8 +194,17 @@ def times_overlap(start_a, end_a, start_b, end_b):
 
 
 # ============================================
-#  EMAIL FUNCTIONS
+#  EMAIL CONFIGURATION
 # ============================================
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'your_email@gmail.com')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'your_app_password')
+app.config['MAIL_DEFAULT_SENDER'] = f'Student Workshop <{app.config["MAIL_USERNAME"]}>'
+
+mail = Mail(app)
+
 
 def send_email(to, subject, html_content):
     try:
@@ -148,14 +221,14 @@ def send_email(to, subject, html_content):
 def send_welcome_email(user_name, user_email):
     subject = "🎉 Welcome to Student Workshop!"
     html = f"""
-    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 550px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden;">
+    <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden;">
         <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 30px 25px; text-align: center;">
             <div style="font-size: 32px; font-weight: 700; color: white;">Student Workshop</div>
         </div>
         <div style="padding: 30px 25px;">
             <h2 style="color: #0f172a;">Welcome, {user_name}! 👋</h2>
             <p style="color: #475569;">Your account has been successfully created.</p>
-            <a href="http://127.0.0.1:5000/workshops" style="display: inline-block; background: #0d9488; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px;">Browse Workshops →</a>
+            <a href="https://your-app.onrender.com/workshops" style="display: inline-block; background: #0d9488; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px;">Browse Workshops →</a>
         </div>
     </div>
     """
@@ -169,7 +242,7 @@ def send_registration_email(user_name, user_email, workshop_title, workshop_date
     """ if teams_link else '<p><em>🔗 A Teams link will be provided by the host.</em></p>'
     
     html = f"""
-    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 550px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden;">
+    <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden;">
         <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 30px 25px; text-align: center;">
             <div style="font-size: 28px; font-weight: 700; color: white;">Registration Confirmed!</div>
         </div>
@@ -182,7 +255,7 @@ def send_registration_email(user_name, user_email, workshop_title, workshop_date
                 <p><strong>⏰ Time:</strong> {workshop_time}</p>
                 {join_button}
             </div>
-            <a href="http://127.0.0.1:5000/dashboard" style="background: #0f172a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px;">📊 My Dashboard</a>
+            <a href="https://your-app.onrender.com/dashboard" style="background: #0f172a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px;">📊 My Dashboard</a>
         </div>
     </div>
     """
@@ -192,14 +265,14 @@ def send_registration_email(user_name, user_email, workshop_title, workshop_date
 def send_workshop_approved_email(host_name, host_email, workshop_title):
     subject = f"🎉 Workshop Approved: {workshop_title}"
     html = f"""
-    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 550px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden;">
+    <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden;">
         <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 30px 25px; text-align: center;">
             <div style="font-size: 28px; font-weight: 700; color: white;">Workshop Approved!</div>
         </div>
         <div style="padding: 30px 25px;">
             <h2>Great news, {host_name}!</h2>
             <p>Your workshop <strong>"{workshop_title}"</strong> is now live!</p>
-            <a href="http://127.0.0.1:5000/host/dashboard" style="display: inline-block; background: #0d9488; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px;">Go to Host Dashboard →</a>
+            <a href="https://your-app.onrender.com/host/dashboard" style="display: inline-block; background: #0d9488; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px;">Go to Host Dashboard →</a>
         </div>
     </div>
     """
@@ -209,7 +282,7 @@ def send_workshop_approved_email(host_name, host_email, workshop_title):
 def send_password_reset_email(user_name, user_email, reset_link):
     subject = "🔐 Reset Your Password - Student Workshop"
     html = f"""
-    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 550px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden;">
+    <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden;">
         <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 30px 25px; text-align: center;">
             <div style="font-size: 28px; font-weight: 700; color: white;">Reset Password</div>
         </div>
@@ -252,42 +325,76 @@ def index():
 @app.route('/workshops')
 def workshops():
     conn = get_db()
+    cursor = conn.cursor()
     role = session.get('role')
-    uid  = session.get('user_id')
+    uid = session.get('user_id')
     current_time = datetime.now().strftime('%H:%M')
     today = date.today().isoformat()
 
     if role == 'admin':
-        all_workshops = conn.execute('''
-            SELECT w.*, u.name AS created_by_name
-            FROM workshops w
-            JOIN users u ON w.created_by = u.id
-            ORDER BY w.date ASC, w.start_time ASC
-        ''').fetchall()
+        if DATABASE_URL:
+            cursor.execute('''
+                SELECT w.*, u.name AS created_by_name
+                FROM workshops w
+                JOIN users u ON w.created_by = u.id
+                ORDER BY w.date ASC, w.start_time ASC
+            ''')
+        else:
+            cursor.execute('''
+                SELECT w.*, u.name AS created_by_name
+                FROM workshops w
+                JOIN users u ON w.created_by = u.id
+                ORDER BY w.date ASC, w.start_time ASC
+            ''')
+        all_workshops = cursor.fetchall()
     elif role == 'host':
-        all_workshops = conn.execute('''
-            SELECT w.*, u.name AS created_by_name,
-                   (SELECT rating FROM feedback WHERE workshop_id = w.id AND user_id = ?) AS my_rating
-            FROM workshops w
-            JOIN users u ON w.created_by = u.id
-            WHERE w.status = 'approved' OR w.created_by = ?
-            ORDER BY w.date ASC, w.start_time ASC
-        ''', (uid, uid)).fetchall()
+        if DATABASE_URL:
+            cursor.execute('''
+                SELECT w.*, u.name AS created_by_name,
+                       (SELECT rating FROM feedback WHERE workshop_id = w.id AND user_id = %s) AS my_rating
+                FROM workshops w
+                JOIN users u ON w.created_by = u.id
+                WHERE w.status = 'approved' OR w.created_by = %s
+                ORDER BY w.date ASC, w.start_time ASC
+            ''', (uid, uid))
+        else:
+            cursor.execute('''
+                SELECT w.*, u.name AS created_by_name,
+                       (SELECT rating FROM feedback WHERE workshop_id = w.id AND user_id = ?) AS my_rating
+                FROM workshops w
+                JOIN users u ON w.created_by = u.id
+                WHERE w.status = 'approved' OR w.created_by = ?
+                ORDER BY w.date ASC, w.start_time ASC
+            ''', (uid, uid))
+        all_workshops = cursor.fetchall()
     else:
-        all_workshops = conn.execute('''
-            SELECT w.*, u.name AS created_by_name,
-                   (SELECT rating FROM feedback WHERE workshop_id = w.id AND user_id = ?) AS my_rating
-            FROM workshops w
-            JOIN users u ON w.created_by = u.id
-            WHERE w.status = 'approved'
-            ORDER BY w.date ASC, w.start_time ASC
-        ''', (uid if uid else 0,)).fetchall()
+        if DATABASE_URL:
+            cursor.execute('''
+                SELECT w.*, u.name AS created_by_name,
+                       (SELECT rating FROM feedback WHERE workshop_id = w.id AND user_id = %s) AS my_rating
+                FROM workshops w
+                JOIN users u ON w.created_by = u.id
+                WHERE w.status = 'approved'
+                ORDER BY w.date ASC, w.start_time ASC
+            ''', (uid if uid else 0,))
+        else:
+            cursor.execute('''
+                SELECT w.*, u.name AS created_by_name,
+                       (SELECT rating FROM feedback WHERE workshop_id = w.id AND user_id = ?) AS my_rating
+                FROM workshops w
+                JOIN users u ON w.created_by = u.id
+                WHERE w.status = 'approved'
+                ORDER BY w.date ASC, w.start_time ASC
+            ''', (uid if uid else 0,))
+        all_workshops = cursor.fetchall()
 
     registered_ids = []
     if uid and role != 'admin':
-        rows = conn.execute(
-            'SELECT workshop_id FROM registrations WHERE user_id = ?', (uid,)
-        ).fetchall()
+        if DATABASE_URL:
+            cursor.execute('SELECT workshop_id FROM registrations WHERE user_id = %s', (uid,))
+        else:
+            cursor.execute('SELECT workshop_id FROM registrations WHERE user_id = ?', (uid,))
+        rows = cursor.fetchall()
         registered_ids = [r['workshop_id'] for r in rows]
 
     conn.close()
@@ -310,11 +417,11 @@ def register():
         return redirect(url_for('index'))
 
     if request.method == 'POST':
-        name     = request.form.get('name', '').strip()
-        email    = request.form.get('email', '').strip().lower()
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
-        confirm  = request.form.get('confirm_password', '')
-        role     = request.form.get('role', 'student')
+        confirm = request.form.get('confirm_password', '')
+        role = request.form.get('role', 'student')
 
         if role not in ('student', 'host'):
             role = 'student'
@@ -336,11 +443,18 @@ def register():
             return render_template('register.html')
 
         conn = get_db()
+        cursor = conn.cursor()
         try:
-            conn.execute('''
-                INSERT INTO users (name, email, password, role, archived)
-                VALUES (?, ?, ?, ?, 0)
-            ''', (name, email, hash_password(password), role))
+            if DATABASE_URL:
+                cursor.execute('''
+                    INSERT INTO users (name, email, password, role, archived)
+                    VALUES (%s, %s, %s, %s, %s)
+                ''', (name, email, hash_password(password), role, 0))
+            else:
+                cursor.execute('''
+                    INSERT INTO users (name, email, password, role, archived)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (name, email, hash_password(password), role, 0))
             conn.commit()
             role_label = 'Host' if role == 'host' else 'Student'
             
@@ -349,7 +463,7 @@ def register():
             flash(f'Account created as {role_label}. A welcome email has been sent.', 'success')
             return redirect(url_for('login'))
 
-        except sqlite3.IntegrityError:
+        except Exception as e:
             flash('Unable to create account. Please check your details and try again.', 'error')
             return render_template('register.html')
 
@@ -365,21 +479,28 @@ def login():
         return redirect(url_for('index'))
 
     if request.method == 'POST':
-        email    = request.form.get('email', '').strip().lower()
+        email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
 
         if email == ADMIN_EMAIL and password == ADMIN_PASSWORD:
             session['user_id'] = 0
-            session['name']    = ADMIN_NAME
-            session['email']   = ADMIN_EMAIL
-            session['role']    = 'admin'
+            session['name'] = ADMIN_NAME
+            session['email'] = ADMIN_EMAIL
+            session['role'] = 'admin'
             flash(f'Welcome back, {ADMIN_NAME}.', 'success')
             return redirect(url_for('admin_dashboard'))
 
         conn = get_db()
-        user = conn.execute('''
-            SELECT * FROM users WHERE email = ? AND password = ?
-        ''', (email, hash_password(password))).fetchone()
+        cursor = conn.cursor()
+        if DATABASE_URL:
+            cursor.execute('''
+                SELECT * FROM users WHERE email = %s AND password = %s
+            ''', (email, hash_password(password)))
+        else:
+            cursor.execute('''
+                SELECT * FROM users WHERE email = ? AND password = ?
+            ''', (email, hash_password(password)))
+        user = cursor.fetchone()
         conn.close()
 
         if user:
@@ -387,9 +508,9 @@ def login():
                 flash('This account has been archived. Contact the administrator.', 'error')
                 return render_template('login.html')
             session['user_id'] = user['id']
-            session['name']    = user['name']
-            session['email']   = user['email']
-            session['role']    = user['role']
+            session['name'] = user['name']
+            session['email'] = user['email']
+            session['role'] = user['role']
             flash(f'Welcome back, {user["name"]}.', 'success')
             if user['role'] == 'host':
                 return redirect(url_for('host_dashboard'))
@@ -418,16 +539,29 @@ def forgot_password():
         email = request.form.get('email', '').strip().lower()
 
         conn = get_db()
-        user = conn.execute('SELECT id, name FROM users WHERE email = ?', (email,)).fetchone()
+        cursor = conn.cursor()
+        if DATABASE_URL:
+            cursor.execute('SELECT id, name FROM users WHERE email = %s', (email,))
+        else:
+            cursor.execute('SELECT id, name FROM users WHERE email = ?', (email,))
+        user = cursor.fetchone()
 
         if user:
             token = secrets.token_urlsafe(32)
             expires_at = datetime.now() + timedelta(hours=24)
-            conn.execute('DELETE FROM reset_tokens WHERE user_id = ?', (user['id'],))
-            conn.execute('''
-                INSERT INTO reset_tokens (user_id, token, expires_at)
-                VALUES (?, ?, ?)
-            ''', (user['id'], token, expires_at))
+            
+            if DATABASE_URL:
+                cursor.execute('DELETE FROM reset_tokens WHERE user_id = %s', (user['id'],))
+                cursor.execute('''
+                    INSERT INTO reset_tokens (user_id, token, expires_at)
+                    VALUES (%s, %s, %s)
+                ''', (user['id'], token, expires_at))
+            else:
+                cursor.execute('DELETE FROM reset_tokens WHERE user_id = ?', (user['id'],))
+                cursor.execute('''
+                    INSERT INTO reset_tokens (user_id, token, expires_at)
+                    VALUES (?, ?, ?)
+                ''', (user['id'], token, expires_at))
             conn.commit()
             reset_link = url_for('reset_password', token=token, _external=True)
             
@@ -448,10 +582,17 @@ def reset_password(token):
         return redirect(url_for('index'))
 
     conn = get_db()
-    reset = conn.execute('''
-        SELECT user_id, expires_at FROM reset_tokens
-        WHERE token = ?
-    ''', (token,)).fetchone()
+    cursor = conn.cursor()
+    
+    if DATABASE_URL:
+        cursor.execute('''
+            SELECT user_id, expires_at FROM reset_tokens WHERE token = %s
+        ''', (token,))
+    else:
+        cursor.execute('''
+            SELECT user_id, expires_at FROM reset_tokens WHERE token = ?
+        ''', (token,))
+    reset = cursor.fetchone()
 
     if not reset:
         flash('Invalid or expired reset link.', 'error')
@@ -459,7 +600,10 @@ def reset_password(token):
         return redirect(url_for('login'))
 
     if datetime.now() > datetime.fromisoformat(reset['expires_at']):
-        conn.execute('DELETE FROM reset_tokens WHERE token = ?', (token,))
+        if DATABASE_URL:
+            cursor.execute('DELETE FROM reset_tokens WHERE token = %s', (token,))
+        else:
+            cursor.execute('DELETE FROM reset_tokens WHERE token = ?', (token,))
         conn.commit()
         conn.close()
         flash('Reset link has expired.', 'error')
@@ -467,7 +611,7 @@ def reset_password(token):
 
     if request.method == 'POST':
         password = request.form.get('password', '')
-        confirm  = request.form.get('confirm_password', '')
+        confirm = request.form.get('confirm_password', '')
 
         if len(password) < 8 or len(password) > 16:
             flash('Password must be between 8 and 16 characters.', 'error')
@@ -477,10 +621,16 @@ def reset_password(token):
             flash('Passwords do not match.', 'error')
             return render_template('reset_password.html', token=token)
 
-        conn.execute('''
-            UPDATE users SET password = ? WHERE id = ?
-        ''', (hash_password(password), reset['user_id']))
-        conn.execute('DELETE FROM reset_tokens WHERE token = ?', (token,))
+        if DATABASE_URL:
+            cursor.execute('''
+                UPDATE users SET password = %s WHERE id = %s
+            ''', (hash_password(password), reset['user_id']))
+            cursor.execute('DELETE FROM reset_tokens WHERE token = %s', (token,))
+        else:
+            cursor.execute('''
+                UPDATE users SET password = ? WHERE id = ?
+            ''', (hash_password(password), reset['user_id']))
+            cursor.execute('DELETE FROM reset_tokens WHERE token = ?', (token,))
         conn.commit()
         conn.close()
 
@@ -506,19 +656,32 @@ def dashboard():
 
     today = date.today().isoformat()
     current_time = datetime.now().strftime('%H:%M')
-    conn  = get_db()
-    uid   = session['user_id']
+    conn = get_db()
+    cursor = conn.cursor()
+    uid = session['user_id']
 
-    my_workshops = conn.execute('''
-        SELECT w.*, u.name AS created_by_name,
-               (SELECT rating FROM feedback WHERE workshop_id = w.id AND user_id = ?) AS my_rating
-        FROM registrations r
-        JOIN workshops w ON r.workshop_id = w.id
-        JOIN users u ON w.created_by = u.id
-        WHERE r.user_id = ?
-        ORDER BY w.date ASC, w.start_time ASC
-    ''', (uid, uid)).fetchall()
+    if DATABASE_URL:
+        cursor.execute('''
+            SELECT w.*, u.name AS created_by_name,
+                   (SELECT rating FROM feedback WHERE workshop_id = w.id AND user_id = %s) AS my_rating
+            FROM registrations r
+            JOIN workshops w ON r.workshop_id = w.id
+            JOIN users u ON w.created_by = u.id
+            WHERE r.user_id = %s
+            ORDER BY w.date ASC, w.start_time ASC
+        ''', (uid, uid))
+    else:
+        cursor.execute('''
+            SELECT w.*, u.name AS created_by_name,
+                   (SELECT rating FROM feedback WHERE workshop_id = w.id AND user_id = ?) AS my_rating
+            FROM registrations r
+            JOIN workshops w ON r.workshop_id = w.id
+            JOIN users u ON w.created_by = u.id
+            WHERE r.user_id = ?
+            ORDER BY w.date ASC, w.start_time ASC
+        ''', (uid, uid))
 
+    my_workshops = cursor.fetchall()
     conn.close()
     return render_template('dashboard.html', workshops=my_workshops, today=today, current_time=current_time)
 
@@ -532,10 +695,12 @@ def respond(workshop_id):
         return redirect(url_for('dashboard'))
     
     conn = get_db()
-    workshop = conn.execute(
-        'SELECT id, title, date, end_time FROM workshops WHERE id = ?',
-        (workshop_id,)
-    ).fetchone()
+    cursor = conn.cursor()
+    if DATABASE_URL:
+        cursor.execute('SELECT id, title, date, end_time FROM workshops WHERE id = %s', (workshop_id,))
+    else:
+        cursor.execute('SELECT id, title, date, end_time FROM workshops WHERE id = ?', (workshop_id,))
+    workshop = cursor.fetchone()
     conn.close()
     
     if not workshop:
@@ -554,44 +719,45 @@ def leave_feedback(workshop_id):
         return redirect(url_for('dashboard'))
 
     conn = get_db()
+    cursor = conn.cursor()
     uid = session['user_id']
 
-    # Check if user registered for this workshop
-    reg = conn.execute('''
-        SELECT 1 FROM registrations WHERE user_id = ? AND workshop_id = ?
-    ''', (uid, workshop_id)).fetchone()
+    if DATABASE_URL:
+        cursor.execute('SELECT 1 FROM registrations WHERE user_id = %s AND workshop_id = %s', (uid, workshop_id))
+    else:
+        cursor.execute('SELECT 1 FROM registrations WHERE user_id = ? AND workshop_id = ?', (uid, workshop_id))
+    reg = cursor.fetchone()
 
     if not reg:
         flash('You did not register for this workshop.', 'error')
         conn.close()
         return redirect(url_for('dashboard'))
 
-    workshop = conn.execute(
-        'SELECT title, date, end_time FROM workshops WHERE id = ?',
-        (workshop_id,)
-    ).fetchone()
+    if DATABASE_URL:
+        cursor.execute('SELECT title, date, end_time FROM workshops WHERE id = %s', (workshop_id,))
+    else:
+        cursor.execute('SELECT title, date, end_time FROM workshops WHERE id = ?', (workshop_id,))
+    workshop = cursor.fetchone()
 
     today = date.today().isoformat()
     current_time = datetime.now().strftime('%H:%M')
 
-    # Check if workshop has ended
     if workshop['date'] > today or (workshop['date'] == today and workshop['end_time'] > current_time):
         flash('You can only leave feedback after the workshop has ended.', 'error')
         conn.close()
         return redirect(url_for('dashboard'))
 
-    # Check if already left feedback
-    existing = conn.execute(
-        'SELECT id FROM feedback WHERE workshop_id = ? AND user_id = ?',
-        (workshop_id, uid)
-    ).fetchone()
+    if DATABASE_URL:
+        cursor.execute('SELECT id FROM feedback WHERE workshop_id = %s AND user_id = %s', (workshop_id, uid))
+    else:
+        cursor.execute('SELECT id FROM feedback WHERE workshop_id = ? AND user_id = ?', (workshop_id, uid))
+    existing = cursor.fetchone()
 
     if existing:
         flash('You have already left feedback for this workshop.', 'warning')
         conn.close()
         return redirect(url_for('dashboard'))
 
-    # Process the feedback
     rating = request.form.get('rating', '').strip()
     comment = request.form.get('comment', '').strip()
 
@@ -600,10 +766,16 @@ def leave_feedback(workshop_id):
         conn.close()
         return redirect(url_for('respond', workshop_id=workshop_id))
 
-    conn.execute('''
-        INSERT INTO feedback (workshop_id, user_id, rating, comment)
-        VALUES (?, ?, ?, ?)
-    ''', (workshop_id, uid, int(rating), comment))
+    if DATABASE_URL:
+        cursor.execute('''
+            INSERT INTO feedback (workshop_id, user_id, rating, comment)
+            VALUES (%s, %s, %s, %s)
+        ''', (workshop_id, uid, int(rating), comment))
+    else:
+        cursor.execute('''
+            INSERT INTO feedback (workshop_id, user_id, rating, comment)
+            VALUES (?, ?, ?, ?)
+        ''', (workshop_id, uid, int(rating), comment))
     conn.commit()
     conn.close()
 
@@ -620,22 +792,35 @@ def join_workshop(workshop_id):
         return redirect(url_for('workshops'))
 
     conn = get_db()
-    workshop = conn.execute(
-        'SELECT * FROM workshops WHERE id = ? AND status = "approved"',
-        (workshop_id,)
-    ).fetchone()
+    cursor = conn.cursor()
+    uid = session['user_id']
+    
+    if DATABASE_URL:
+        cursor.execute('SELECT * FROM workshops WHERE id = %s AND status = %s', (workshop_id, 'approved'))
+    else:
+        cursor.execute('SELECT * FROM workshops WHERE id = ? AND status = ?', (workshop_id, 'approved'))
+    workshop = cursor.fetchone()
 
     if not workshop:
         flash('Workshop not found.', 'error')
         conn.close()
         return redirect(url_for('workshops'))
 
-    same_day = conn.execute('''
-        SELECT w.title, w.start_time, w.end_time
-        FROM registrations r
-        JOIN workshops w ON r.workshop_id = w.id
-        WHERE r.user_id = ? AND w.date = ?
-    ''', (session['user_id'], workshop['date'])).fetchall()
+    if DATABASE_URL:
+        cursor.execute('''
+            SELECT w.title, w.start_time, w.end_time
+            FROM registrations r
+            JOIN workshops w ON r.workshop_id = w.id
+            WHERE r.user_id = %s AND w.date = %s
+        ''', (uid, workshop['date']))
+    else:
+        cursor.execute('''
+            SELECT w.title, w.start_time, w.end_time
+            FROM registrations r
+            JOIN workshops w ON r.workshop_id = w.id
+            WHERE r.user_id = ? AND w.date = ?
+        ''', (uid, workshop['date']))
+    same_day = cursor.fetchall()
 
     for existing in same_day:
         if times_overlap(
@@ -652,12 +837,22 @@ def join_workshop(workshop_id):
             return redirect(url_for('workshops'))
 
     try:
-        conn.execute('''
-            INSERT INTO registrations (user_id, workshop_id) VALUES (?, ?)
-        ''', (session['user_id'], workshop_id))
+        if DATABASE_URL:
+            cursor.execute('''
+                INSERT INTO registrations (user_id, workshop_id) VALUES (%s, %s)
+            ''', (uid, workshop_id))
+        else:
+            cursor.execute('''
+                INSERT INTO registrations (user_id, workshop_id) VALUES (?, ?)
+            ''', (uid, workshop_id))
         conn.commit()
         
-        user = conn.execute('SELECT name FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+        if DATABASE_URL:
+            cursor.execute('SELECT name FROM users WHERE id = %s', (uid,))
+        else:
+            cursor.execute('SELECT name FROM users WHERE id = ?', (uid,))
+        user = cursor.fetchone()
+        
         send_registration_email(
             user['name'],
             session['email'],
@@ -669,7 +864,7 @@ def join_workshop(workshop_id):
         
         flash(f'You have registered for "{workshop["title"]}". A confirmation email has been sent.', 'success')
 
-    except sqlite3.IntegrityError:
+    except Exception:
         flash('You are already registered for this workshop.', 'warning')
 
     finally:
@@ -684,9 +879,11 @@ def unregister_workshop(workshop_id):
         return redirect(url_for('login'))
 
     conn = get_db()
-    conn.execute('''
-        DELETE FROM registrations WHERE user_id = ? AND workshop_id = ?
-    ''', (session['user_id'], workshop_id))
+    cursor = conn.cursor()
+    if DATABASE_URL:
+        cursor.execute('DELETE FROM registrations WHERE user_id = %s AND workshop_id = %s', (session['user_id'], workshop_id))
+    else:
+        cursor.execute('DELETE FROM registrations WHERE user_id = ? AND workshop_id = ?', (session['user_id'], workshop_id))
     conn.commit()
     conn.close()
 
@@ -704,20 +901,31 @@ def calendar_workshops_api():
         return jsonify([])
 
     conn = get_db()
-    rows = conn.execute('''
-        SELECT w.title, w.date, w.start_time, w.end_time
-        FROM registrations r
-        JOIN workshops w ON r.workshop_id = w.id
-        WHERE r.user_id = ?
-        ORDER BY w.date ASC, w.start_time ASC
-    ''', (session['user_id'],)).fetchall()
+    cursor = conn.cursor()
+    if DATABASE_URL:
+        cursor.execute('''
+            SELECT w.title, w.date, w.start_time, w.end_time
+            FROM registrations r
+            JOIN workshops w ON r.workshop_id = w.id
+            WHERE r.user_id = %s
+            ORDER BY w.date ASC, w.start_time ASC
+        ''', (session['user_id'],))
+    else:
+        cursor.execute('''
+            SELECT w.title, w.date, w.start_time, w.end_time
+            FROM registrations r
+            JOIN workshops w ON r.workshop_id = w.id
+            WHERE r.user_id = ?
+            ORDER BY w.date ASC, w.start_time ASC
+        ''', (session['user_id'],))
+    rows = cursor.fetchall()
     conn.close()
 
     return jsonify([{
-        'title':      row['title'],
-        'date':       row['date'],
+        'title': row['title'],
+        'date': row['date'],
         'start_time': row['start_time'],
-        'end_time':   row['end_time']
+        'end_time': row['end_time']
     } for row in rows])
 
 
@@ -735,18 +943,26 @@ def upcoming_workshops_api():
     in_7_days = today + timedelta(days=7)
 
     conn = get_db()
-    rows = conn.execute('''
-        SELECT w.title, w.date, w.start_time, w.end_time
-        FROM registrations r
-        JOIN workshops w ON r.workshop_id = w.id
-        WHERE r.user_id = ?
-          AND w.date BETWEEN ? AND ?
-        ORDER BY w.date ASC, w.start_time ASC
-    ''', (
-        session['user_id'],
-        today.isoformat(),
-        in_7_days.isoformat()
-    )).fetchall()
+    cursor = conn.cursor()
+    if DATABASE_URL:
+        cursor.execute('''
+            SELECT w.title, w.date, w.start_time, w.end_time
+            FROM registrations r
+            JOIN workshops w ON r.workshop_id = w.id
+            WHERE r.user_id = %s
+              AND w.date BETWEEN %s AND %s
+            ORDER BY w.date ASC, w.start_time ASC
+        ''', (session['user_id'], today.isoformat(), in_7_days.isoformat()))
+    else:
+        cursor.execute('''
+            SELECT w.title, w.date, w.start_time, w.end_time
+            FROM registrations r
+            JOIN workshops w ON r.workshop_id = w.id
+            WHERE r.user_id = ?
+              AND w.date BETWEEN ? AND ?
+            ORDER BY w.date ASC, w.start_time ASC
+        ''', (session['user_id'], today.isoformat(), in_7_days.isoformat()))
+    rows = cursor.fetchall()
     conn.close()
 
     result = []
@@ -768,12 +984,12 @@ def upcoming_workshops_api():
                 minutes_away = 0
 
         result.append({
-            'title':        row['title'],
-            'date':         row['date'],
-            'time':         f"{row['start_time']} - {row['end_time']}",
-            'days_away':    days_away,
+            'title': row['title'],
+            'date': row['date'],
+            'time': f"{row['start_time']} - {row['end_time']}",
+            'days_away': days_away,
             'minutes_away': minutes_away,
-            'urgent':       urgent
+            'urgent': urgent
         })
 
     return jsonify(result)
@@ -793,26 +1009,49 @@ def host_dashboard():
 
     today = date.today().isoformat()
     current_time = datetime.now().strftime('%H:%M')
-    conn  = get_db()
-    uid   = session['user_id']
+    conn = get_db()
+    cursor = conn.cursor()
+    uid = session['user_id']
 
-    my_workshops = conn.execute('''
-        SELECT w.*, COUNT(r.id) AS registration_count
-        FROM workshops w
-        LEFT JOIN registrations r ON r.workshop_id = w.id
-        WHERE w.created_by = ?
-        GROUP BY w.id
-        ORDER BY w.date ASC
-    ''', (uid,)).fetchall()
+    if DATABASE_URL:
+        cursor.execute('''
+            SELECT w.*, COUNT(r.id) AS registration_count
+            FROM workshops w
+            LEFT JOIN registrations r ON r.workshop_id = w.id
+            WHERE w.created_by = %s
+            GROUP BY w.id
+            ORDER BY w.date ASC
+        ''', (uid,))
+    else:
+        cursor.execute('''
+            SELECT w.*, COUNT(r.id) AS registration_count
+            FROM workshops w
+            LEFT JOIN registrations r ON r.workshop_id = w.id
+            WHERE w.created_by = ?
+            GROUP BY w.id
+            ORDER BY w.date ASC
+        ''', (uid,))
+    my_workshops = cursor.fetchall()
 
-    attending = conn.execute('''
-        SELECT w.*, u.name AS created_by_name
-        FROM registrations r
-        JOIN workshops w ON r.workshop_id = w.id
-        JOIN users u ON w.created_by = u.id
-        WHERE r.user_id = ? AND w.created_by != ?
-        ORDER BY w.date ASC
-    ''', (uid, uid)).fetchall()
+    if DATABASE_URL:
+        cursor.execute('''
+            SELECT w.*, u.name AS created_by_name
+            FROM registrations r
+            JOIN workshops w ON r.workshop_id = w.id
+            JOIN users u ON w.created_by = u.id
+            WHERE r.user_id = %s AND w.created_by != %s
+            ORDER BY w.date ASC
+        ''', (uid, uid))
+    else:
+        cursor.execute('''
+            SELECT w.*, u.name AS created_by_name
+            FROM registrations r
+            JOIN workshops w ON r.workshop_id = w.id
+            JOIN users u ON w.created_by = u.id
+            WHERE r.user_id = ? AND w.created_by != ?
+            ORDER BY w.date ASC
+        ''', (uid, uid))
+    attending = cursor.fetchall()
 
     conn.close()
     return render_template(
@@ -833,37 +1072,51 @@ def host_view_feedback(workshop_id):
         return redirect(url_for('host_dashboard'))
 
     conn = get_db()
+    cursor = conn.cursor()
     uid = session['user_id']
 
-    workshop = conn.execute('''
-        SELECT * FROM workshops WHERE id = ? AND created_by = ?
-    ''', (workshop_id, uid)).fetchone()
+    if DATABASE_URL:
+        cursor.execute('SELECT * FROM workshops WHERE id = %s AND created_by = %s', (workshop_id, uid))
+    else:
+        cursor.execute('SELECT * FROM workshops WHERE id = ? AND created_by = ?', (workshop_id, uid))
+    workshop = cursor.fetchone()
 
     if not workshop and session.get('role') != 'admin':
         flash('This workshop does not belong to you.', 'error')
         conn.close()
         return redirect(url_for('host_dashboard'))
 
-    feedback = conn.execute('''
-        SELECT f.*, u.name AS student_name
-        FROM feedback f
-        JOIN users u ON f.user_id = u.id
-        WHERE f.workshop_id = ?
-        ORDER BY f.created_at DESC
-    ''', (workshop_id,)).fetchall()
+    if DATABASE_URL:
+        cursor.execute('''
+            SELECT f.*, u.name AS student_name
+            FROM feedback f
+            JOIN users u ON f.user_id = u.id
+            WHERE f.workshop_id = %s
+            ORDER BY f.created_at DESC
+        ''', (workshop_id,))
+    else:
+        cursor.execute('''
+            SELECT f.*, u.name AS student_name
+            FROM feedback f
+            JOIN users u ON f.user_id = u.id
+            WHERE f.workshop_id = ?
+            ORDER BY f.created_at DESC
+        ''', (workshop_id,))
+    feedback = cursor.fetchall()
 
-    avg_rating = conn.execute('''
-        SELECT AVG(rating) as avg, COUNT(*) as count
-        FROM feedback WHERE workshop_id = ?
-    ''', (workshop_id,)).fetchone()
+    if DATABASE_URL:
+        cursor.execute('SELECT AVG(rating) as avg, COUNT(*) as count FROM feedback WHERE workshop_id = %s', (workshop_id,))
+    else:
+        cursor.execute('SELECT AVG(rating) as avg, COUNT(*) as count FROM feedback WHERE workshop_id = ?', (workshop_id,))
+    avg_rating = cursor.fetchone()
 
     conn.close()
     return render_template(
         'host_feedback.html',
         workshop=workshop,
         feedback=feedback,
-        avg_rating=avg_rating['avg'],
-        feedback_count=avg_rating['count']
+        avg_rating=avg_rating['avg'] if avg_rating else 0,
+        feedback_count=avg_rating['count'] if avg_rating else 0
     )
 
 
@@ -876,12 +1129,12 @@ def host_create_workshop():
         return redirect(url_for('index'))
 
     if request.method == 'POST':
-        title       = request.form.get('title', '').strip()
+        title = request.form.get('title', '').strip()
         description = request.form.get('description', '').strip()
-        date_val    = request.form.get('date', '').strip()
-        start_time  = request.form.get('start_time', '').strip()
-        end_time    = request.form.get('end_time', '').strip()
-        teams_link  = request.form.get('teams_link', '').strip()
+        date_val = request.form.get('date', '').strip()
+        start_time = request.form.get('start_time', '').strip()
+        end_time = request.form.get('end_time', '').strip()
+        teams_link = request.form.get('teams_link', '').strip()
 
         if not title:
             flash('Title is required.', 'error')
@@ -903,10 +1156,17 @@ def host_create_workshop():
             return render_template('host_create_workshop.html', today=date.today().isoformat())
 
         conn = get_db()
-        conn.execute('''
-            INSERT INTO workshops (title, description, date, start_time, end_time, teams_link, created_by, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
-        ''', (title, description, date_val, start_time, end_time, teams_link or None, session['user_id']))
+        cursor = conn.cursor()
+        if DATABASE_URL:
+            cursor.execute('''
+                INSERT INTO workshops (title, description, date, start_time, end_time, teams_link, created_by, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (title, description, date_val, start_time, end_time, teams_link or None, session['user_id'], 'pending'))
+        else:
+            cursor.execute('''
+                INSERT INTO workshops (title, description, date, start_time, end_time, teams_link, created_by, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (title, description, date_val, start_time, end_time, teams_link or None, session['user_id'], 'pending'))
         conn.commit()
         conn.close()
 
@@ -923,15 +1183,22 @@ def host_delete_workshop(workshop_id):
         return redirect(url_for('login'))
 
     conn = get_db()
-    workshop = conn.execute(
-        'SELECT * FROM workshops WHERE id = ? AND created_by = ?',
-        (workshop_id, session['user_id'])
-    ).fetchone()
+    cursor = conn.cursor()
+    if DATABASE_URL:
+        cursor.execute('SELECT * FROM workshops WHERE id = %s AND created_by = %s', (workshop_id, session['user_id']))
+    else:
+        cursor.execute('SELECT * FROM workshops WHERE id = ? AND created_by = ?', (workshop_id, session['user_id']))
+    workshop = cursor.fetchone()
 
     if workshop:
-        conn.execute('DELETE FROM feedback WHERE workshop_id = ?', (workshop_id,))
-        conn.execute('DELETE FROM registrations WHERE workshop_id = ?', (workshop_id,))
-        conn.execute('DELETE FROM workshops WHERE id = ?', (workshop_id,))
+        if DATABASE_URL:
+            cursor.execute('DELETE FROM feedback WHERE workshop_id = %s', (workshop_id,))
+            cursor.execute('DELETE FROM registrations WHERE workshop_id = %s', (workshop_id,))
+            cursor.execute('DELETE FROM workshops WHERE id = %s', (workshop_id,))
+        else:
+            cursor.execute('DELETE FROM feedback WHERE workshop_id = ?', (workshop_id,))
+            cursor.execute('DELETE FROM registrations WHERE workshop_id = ?', (workshop_id,))
+            cursor.execute('DELETE FROM workshops WHERE id = ?', (workshop_id,))
         conn.commit()
         flash(f'"{workshop["title"]}" has been deleted.', 'info')
     else:
@@ -952,37 +1219,66 @@ def admin_dashboard():
 
     today = date.today().isoformat()
     current_time = datetime.now().strftime('%H:%M')
-    conn  = get_db()
+    conn = get_db()
+    cursor = conn.cursor()
 
-    all_workshops = conn.execute('''
-        SELECT w.*, u.name AS created_by_name,
-               COUNT(r.id) AS registration_count
-        FROM workshops w
-        JOIN users u ON w.created_by = u.id
-        LEFT JOIN registrations r ON r.workshop_id = w.id
-        GROUP BY w.id
-        ORDER BY w.date ASC, w.start_time ASC
-    ''').fetchall()
+    if DATABASE_URL:
+        cursor.execute('''
+            SELECT w.*, u.name AS created_by_name,
+                   COUNT(r.id) AS registration_count
+            FROM workshops w
+            JOIN users u ON w.created_by = u.id
+            LEFT JOIN registrations r ON r.workshop_id = w.id
+            GROUP BY w.id
+            ORDER BY w.date ASC, w.start_time ASC
+        ''')
+    else:
+        cursor.execute('''
+            SELECT w.*, u.name AS created_by_name,
+                   COUNT(r.id) AS registration_count
+            FROM workshops w
+            JOIN users u ON w.created_by = u.id
+            LEFT JOIN registrations r ON r.workshop_id = w.id
+            GROUP BY w.id
+            ORDER BY w.date ASC, w.start_time ASC
+        ''')
+    all_workshops = cursor.fetchall()
 
-    pending_workshops = conn.execute('''
-        SELECT w.*, u.name AS created_by_name
-        FROM workshops w
-        JOIN users u ON w.created_by = u.id
-        WHERE w.status = 'pending'
-        ORDER BY w.date ASC
-    ''').fetchall()
+    if DATABASE_URL:
+        cursor.execute('''
+            SELECT w.*, u.name AS created_by_name
+            FROM workshops w
+            JOIN users u ON w.created_by = u.id
+            WHERE w.status = 'pending'
+            ORDER BY w.date ASC
+        ''')
+    else:
+        cursor.execute('''
+            SELECT w.*, u.name AS created_by_name
+            FROM workshops w
+            JOIN users u ON w.created_by = u.id
+            WHERE w.status = 'pending'
+            ORDER BY w.date ASC
+        ''')
+    pending_workshops = cursor.fetchall()
 
-    total_students = conn.execute(
-        "SELECT COUNT(*) FROM users WHERE role = 'student'"
-    ).fetchone()[0]
+    if DATABASE_URL:
+        cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'student'")
+    else:
+        cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'student'")
+    total_students = cursor.fetchone()[0]
 
-    total_hosts = conn.execute(
-        "SELECT COUNT(*) FROM users WHERE role = 'host'"
-    ).fetchone()[0]
+    if DATABASE_URL:
+        cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'host'")
+    else:
+        cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'host'")
+    total_hosts = cursor.fetchone()[0]
 
-    total_registrations = conn.execute(
-        "SELECT COUNT(*) FROM registrations"
-    ).fetchone()[0]
+    if DATABASE_URL:
+        cursor.execute("SELECT COUNT(*) FROM registrations")
+    else:
+        cursor.execute("SELECT COUNT(*) FROM registrations")
+    total_registrations = cursor.fetchone()[0]
 
     conn.close()
     return render_template(
@@ -1003,18 +1299,29 @@ def approve_workshop(workshop_id):
         return redirect(url_for('login'))
 
     conn = get_db()
-    workshop = conn.execute('''
-        SELECT w.*, u.name AS host_name, u.email AS host_email
-        FROM workshops w
-        JOIN users u ON w.created_by = u.id
-        WHERE w.id = ?
-    ''', (workshop_id,)).fetchone()
+    cursor = conn.cursor()
+    
+    if DATABASE_URL:
+        cursor.execute('''
+            SELECT w.*, u.name AS host_name, u.email AS host_email
+            FROM workshops w
+            JOIN users u ON w.created_by = u.id
+            WHERE w.id = %s
+        ''', (workshop_id,))
+    else:
+        cursor.execute('''
+            SELECT w.*, u.name AS host_name, u.email AS host_email
+            FROM workshops w
+            JOIN users u ON w.created_by = u.id
+            WHERE w.id = ?
+        ''', (workshop_id,))
+    workshop = cursor.fetchone()
 
     if workshop:
-        conn.execute(
-            "UPDATE workshops SET status = 'approved' WHERE id = ?",
-            (workshop_id,)
-        )
+        if DATABASE_URL:
+            cursor.execute("UPDATE workshops SET status = 'approved' WHERE id = %s", (workshop_id,))
+        else:
+            cursor.execute("UPDATE workshops SET status = 'approved' WHERE id = ?", (workshop_id,))
         conn.commit()
         
         send_workshop_approved_email(
@@ -1037,15 +1344,19 @@ def reject_workshop(workshop_id):
         return redirect(url_for('login'))
 
     conn = get_db()
-    workshop = conn.execute(
-        'SELECT title FROM workshops WHERE id = ?', (workshop_id,)
-    ).fetchone()
+    cursor = conn.cursor()
+    
+    if DATABASE_URL:
+        cursor.execute('SELECT title FROM workshops WHERE id = %s', (workshop_id,))
+    else:
+        cursor.execute('SELECT title FROM workshops WHERE id = ?', (workshop_id,))
+    workshop = cursor.fetchone()
 
     if workshop:
-        conn.execute(
-            "UPDATE workshops SET status = 'rejected' WHERE id = ?",
-            (workshop_id,)
-        )
+        if DATABASE_URL:
+            cursor.execute("UPDATE workshops SET status = 'rejected' WHERE id = %s", (workshop_id,))
+        else:
+            cursor.execute("UPDATE workshops SET status = 'rejected' WHERE id = ?", (workshop_id,))
         conn.commit()
         flash(f'"{workshop["title"]}" has been rejected.', 'info')
     else:
@@ -1061,12 +1372,12 @@ def create_workshop():
         return redirect(url_for('login'))
 
     if request.method == 'POST':
-        title       = request.form.get('title', '').strip()
+        title = request.form.get('title', '').strip()
         description = request.form.get('description', '').strip()
-        date_val    = request.form.get('date', '').strip()
-        start_time  = request.form.get('start_time', '').strip()
-        end_time    = request.form.get('end_time', '').strip()
-        teams_link  = request.form.get('teams_link', '').strip()
+        date_val = request.form.get('date', '').strip()
+        start_time = request.form.get('start_time', '').strip()
+        end_time = request.form.get('end_time', '').strip()
+        teams_link = request.form.get('teams_link', '').strip()
 
         if not title:
             flash('Title is required.', 'error')
@@ -1089,14 +1400,24 @@ def create_workshop():
 
         ensure_admin_in_db()
         conn = get_db()
-        admin_row = conn.execute(
-            'SELECT id FROM users WHERE email = ?', (ADMIN_EMAIL,)
-        ).fetchone()
+        cursor = conn.cursor()
+        
+        if DATABASE_URL:
+            cursor.execute('SELECT id FROM users WHERE email = %s', (ADMIN_EMAIL,))
+        else:
+            cursor.execute('SELECT id FROM users WHERE email = ?', (ADMIN_EMAIL,))
+        admin_row = cursor.fetchone()
 
-        conn.execute('''
-            INSERT INTO workshops (title, description, date, start_time, end_time, teams_link, created_by, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'approved')
-        ''', (title, description, date_val, start_time, end_time, teams_link or None, admin_row['id']))
+        if DATABASE_URL:
+            cursor.execute('''
+                INSERT INTO workshops (title, description, date, start_time, end_time, teams_link, created_by, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (title, description, date_val, start_time, end_time, teams_link or None, admin_row['id'], 'approved'))
+        else:
+            cursor.execute('''
+                INSERT INTO workshops (title, description, date, start_time, end_time, teams_link, created_by, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (title, description, date_val, start_time, end_time, teams_link or None, admin_row['id'], 'approved'))
         conn.commit()
         conn.close()
 
@@ -1113,14 +1434,23 @@ def delete_workshop(workshop_id):
         return redirect(url_for('login'))
 
     conn = get_db()
-    workshop = conn.execute(
-        'SELECT title FROM workshops WHERE id = ?', (workshop_id,)
-    ).fetchone()
+    cursor = conn.cursor()
+    
+    if DATABASE_URL:
+        cursor.execute('SELECT title FROM workshops WHERE id = %s', (workshop_id,))
+    else:
+        cursor.execute('SELECT title FROM workshops WHERE id = ?', (workshop_id,))
+    workshop = cursor.fetchone()
 
     if workshop:
-        conn.execute('DELETE FROM feedback WHERE workshop_id = ?', (workshop_id,))
-        conn.execute('DELETE FROM registrations WHERE workshop_id = ?', (workshop_id,))
-        conn.execute('DELETE FROM workshops WHERE id = ?', (workshop_id,))
+        if DATABASE_URL:
+            cursor.execute('DELETE FROM feedback WHERE workshop_id = %s', (workshop_id,))
+            cursor.execute('DELETE FROM registrations WHERE workshop_id = %s', (workshop_id,))
+            cursor.execute('DELETE FROM workshops WHERE id = %s', (workshop_id,))
+        else:
+            cursor.execute('DELETE FROM feedback WHERE workshop_id = ?', (workshop_id,))
+            cursor.execute('DELETE FROM registrations WHERE workshop_id = ?', (workshop_id,))
+            cursor.execute('DELETE FROM workshops WHERE id = ?', (workshop_id,))
         conn.commit()
         flash(f'"{workshop["title"]}" has been deleted.', 'info')
     else:
@@ -1140,15 +1470,29 @@ def admin_students():
         return redirect(url_for('login'))
 
     conn = get_db()
-    students = conn.execute('''
-        SELECT u.id, u.name, u.email, u.archived,
-               COUNT(r.id) AS registration_count
-        FROM users u
-        LEFT JOIN registrations r ON r.user_id = u.id
-        WHERE u.role = 'student'
-        GROUP BY u.id
-        ORDER BY u.archived ASC, u.name ASC
-    ''').fetchall()
+    cursor = conn.cursor()
+    
+    if DATABASE_URL:
+        cursor.execute('''
+            SELECT u.id, u.name, u.email, u.archived,
+                   COUNT(r.id) AS registration_count
+            FROM users u
+            LEFT JOIN registrations r ON r.user_id = u.id
+            WHERE u.role = 'student'
+            GROUP BY u.id
+            ORDER BY u.archived ASC, u.name ASC
+        ''')
+    else:
+        cursor.execute('''
+            SELECT u.id, u.name, u.email, u.archived,
+                   COUNT(r.id) AS registration_count
+            FROM users u
+            LEFT JOIN registrations r ON r.user_id = u.id
+            WHERE u.role = 'student'
+            GROUP BY u.id
+            ORDER BY u.archived ASC, u.name ASC
+        ''')
+    students = cursor.fetchall()
     conn.close()
 
     return render_template('admin_students.html', students=students)
@@ -1160,15 +1504,29 @@ def admin_hosts():
         return redirect(url_for('login'))
 
     conn = get_db()
-    hosts = conn.execute('''
-        SELECT u.id, u.name, u.email, u.archived,
-               COUNT(w.id) AS workshop_count
-        FROM users u
-        LEFT JOIN workshops w ON w.created_by = u.id
-        WHERE u.role = 'host'
-        GROUP BY u.id
-        ORDER BY u.archived ASC, u.name ASC
-    ''').fetchall()
+    cursor = conn.cursor()
+    
+    if DATABASE_URL:
+        cursor.execute('''
+            SELECT u.id, u.name, u.email, u.archived,
+                   COUNT(w.id) AS workshop_count
+            FROM users u
+            LEFT JOIN workshops w ON w.created_by = u.id
+            WHERE u.role = 'host'
+            GROUP BY u.id
+            ORDER BY u.archived ASC, u.name ASC
+        ''')
+    else:
+        cursor.execute('''
+            SELECT u.id, u.name, u.email, u.archived,
+                   COUNT(w.id) AS workshop_count
+            FROM users u
+            LEFT JOIN workshops w ON w.created_by = u.id
+            WHERE u.role = 'host'
+            GROUP BY u.id
+            ORDER BY u.archived ASC, u.name ASC
+        ''')
+    hosts = cursor.fetchall()
     conn.close()
 
     return render_template('admin_hosts.html', hosts=hosts)
@@ -1180,11 +1538,20 @@ def archive_user(user_id):
         return redirect(url_for('login'))
 
     conn = get_db()
-    user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+    cursor = conn.cursor()
+    
+    if DATABASE_URL:
+        cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))
+    else:
+        cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+    user = cursor.fetchone()
 
     if user:
         new_status = 0 if user['archived'] else 1
-        conn.execute('UPDATE users SET archived = ? WHERE id = ?', (new_status, user_id))
+        if DATABASE_URL:
+            cursor.execute('UPDATE users SET archived = %s WHERE id = %s', (new_status, user_id))
+        else:
+            cursor.execute('UPDATE users SET archived = ? WHERE id = ?', (new_status, user_id))
         conn.commit()
         action = 'archived' if new_status else 'restored'
         flash(f'{user["name"]} has been {action}.', 'info')
@@ -1201,13 +1568,24 @@ def delete_user(user_id):
         return redirect(url_for('login'))
 
     conn = get_db()
-    user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+    cursor = conn.cursor()
+    
+    if DATABASE_URL:
+        cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))
+    else:
+        cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+    user = cursor.fetchone()
 
     if user:
         role = user['role']
-        conn.execute('DELETE FROM feedback WHERE user_id = ?', (user_id,))
-        conn.execute('DELETE FROM registrations WHERE user_id = ?', (user_id,))
-        conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
+        if DATABASE_URL:
+            cursor.execute('DELETE FROM feedback WHERE user_id = %s', (user_id,))
+            cursor.execute('DELETE FROM registrations WHERE user_id = %s', (user_id,))
+            cursor.execute('DELETE FROM users WHERE id = %s', (user_id,))
+        else:
+            cursor.execute('DELETE FROM feedback WHERE user_id = ?', (user_id,))
+            cursor.execute('DELETE FROM registrations WHERE user_id = ?', (user_id,))
+            cursor.execute('DELETE FROM users WHERE id = ?', (user_id,))
         conn.commit()
         flash(f'{user["name"]} has been permanently deleted.', 'info')
         conn.close()
