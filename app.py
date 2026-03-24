@@ -199,9 +199,9 @@ def times_overlap(start_a, end_a, start_b, end_b):
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'your_email@gmail.com')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'your_app_password')
-app.config['MAIL_DEFAULT_SENDER'] = f'Student Workshop <{app.config["MAIL_USERNAME"]}>'
+app.config['MAIL_USERNAME'] = os.environ.get('goodenough245@gmail.com')
+app.config['MAIL_PASSWORD'] = os.environ.get('jhfq xvna tyuj hpav')
+app.config['MAIL_DEFAULT_SENDER'] = 'Student Workshop'
 
 mail = Mail(app)
 
