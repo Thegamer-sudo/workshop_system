@@ -533,7 +533,7 @@ def respond(workshop_id):
     
     conn = get_db()
     workshop = conn.execute(
-        'SELECT title, date, end_time FROM workshops WHERE id = ?',
+        'SELECT id, title, date, end_time FROM workshops WHERE id = ?',
         (workshop_id,)
     ).fetchone()
     conn.close()
