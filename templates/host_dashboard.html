@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-wrapper">
 
-  <!-- Page Header — no submit button here -->
+  <!-- Page Header -->
   <div class="page-header">
     <div>
       <h1>Host Dashboard</h1>
@@ -91,6 +91,7 @@
             <th>Time</th>
             <th>Registrations</th>
             <th>Status</th>
+            <th>Feedback</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -120,6 +121,23 @@
                   {% endif %}
                 {% else %}
                   <span class="badge badge-red">Rejected</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if w.status == 'approved' %}
+                  <a href="{{ url_for('host_view_feedback', workshop_id=w.id) }}"
+                    class="btn btn-sm"
+                    style="background: #fef9c3; color: #92400e; border-color: #fcd34d;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                      style="margin-right: 4px;">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                    View
+                  </a>
+                {% else %}
+                  <span class="text-sm text-muted">—</span>
                 {% endif %}
               </td>
               <td>

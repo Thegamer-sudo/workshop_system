@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block title %}Share Your Experience — Student Workshop{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div>
+      <h1>Share Your Experience</h1>
+      <p>Tell us about <strong>"{{ workshop.title }}"</strong></p>
+    </div>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">&larr; Back to Dashboard</a>
+  </div>
+
+  <div class="card" style="max-width: 600px;">
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('leave_feedback', workshop_id=workshop.id) }}">
+
+        <div style="background: #f0fdfa; border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+          <p style="margin: 0; color: #0f766e;">
+            <strong>📅 Date:</strong> {{ workshop.date }}<br>
+            <strong>⏰ Time:</strong> {{ workshop.end_time }} (ended)
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight: 600; display: block; margin-bottom: 8px;">How would you rate this workshop?</label>
+          <div style="display: flex; gap: 0.8rem; margin-bottom: 10px;">
+            <label style="cursor: pointer; font-size: 2rem;">
+              <input type="radio" name="rating" value="1" required style="position: absolute; opacity: 0;">
+              <span class="star" data-value="1" style="color: #cbd5e1;">★</span>
+            </label>
+            <label style="cursor: pointer; font-size: 2rem;">
+              <input type="radio" name="rating" value="2" required style="position: absolute; opacity: 0;">
+              <span class="star" data-value="2" style="color: #cbd5e1;">★</span>
+            </label>
+            <label style="cursor: pointer; font-size: 2rem;">
+              <input type="radio" name="rating" value="3" required style="position: absolute; opacity: 0;">
+              <span class="star" data-value="3" style="color: #cbd5e1;">★</span>
+            </label>
+            <label style="cursor: pointer; font-size: 2rem;">
+              <input type="radio" name="rating" value="4" required style="position: absolute; opacity: 0;">
+              <span class="star" data-value="4" style="color: #cbd5e1;">★</span>
+            </label>
+            <label style="cursor: pointer; font-size: 2rem;">
+              <input type="radio" name="rating" value="5" required style="position: absolute; opacity: 0;">
+              <span class="star" data-value="5" style="color: #cbd5e1;">★</span>
+            </label>
+          </div>
+          <div class="form-hint">Click on stars to rate (1 = Poor, 5 = Excellent)</div>
+        </div>
+
+        <div class="form-group">
+          <label for="comment">Your Comments</label>
+          <textarea id="comment" name="comment"
+            placeholder="What did you learn? What could be improved? Any suggestions for future workshops?"
+            rows="5"
+            style="width: 100%; padding: 0.85rem; border-radius: var(--radius); border: 1.5px solid var(--grey-300); font-family: var(--font-body); resize: vertical;"></textarea>
+          <div class="form-hint">Your feedback helps the host improve future sessions.</div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+          <button type="submit" class="btn btn-primary">Submit Feedback</button>
+          <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">Cancel</a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const stars = document.querySelectorAll('.star');
+  let selectedRating = null;
+
+  stars.forEach(star => {
+    star.addEventListener('mouseenter', () => {
+      if (!selectedRating) {
+        const val = parseInt(star.dataset.value);
+        stars.forEach(s => {
+          if (parseInt(s.dataset.value) <= val) {
+            s.style.color = '#f59e0b';
+          } else {
+            s.style.color = '#cbd5e1';
+          }
+        });
+      }
+    });
+
+    star.addEventListener('click', () => {
+      selectedRating = parseInt(star.dataset.value);
+      stars.forEach(s => {
+        if (parseInt(s.dataset.value) <= selectedRating) {
+          s.style.color = '#f59e0b';
+        } else {
+          s.style.color = '#cbd5e1';
+        }
+      });
+      document.querySelector(`input[name="rating"][value="${selectedRating}"]`).checked = true;
+    });
+  });
+
+  document.querySelectorAll('input[name="rating"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      selectedRating = parseInt(e.target.value);
+      stars.forEach(s => {
+        if (parseInt(s.dataset.value) <= selectedRating) {
+          s.style.color = '#f59e0b';
+        } else {
+          s.style.color = '#cbd5e1';
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}

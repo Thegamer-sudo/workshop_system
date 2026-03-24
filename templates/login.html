@@ -49,11 +49,10 @@
           </div>
         </div>
 
-        <!-- Forgot password -->
+        <!-- Forgot password - fixed link -->
         <div style="text-align: right; margin-top: -0.5rem; margin-bottom: 1.3rem;">
-          <a href="#"
-            style="font-size: 0.82rem; color: var(--grey-500); text-decoration: none;"
-            onclick="alert('Password reset via email is coming soon.'); return false;">
+          <a href="{{ url_for('forgot_password') }}"
+            style="font-size: 0.82rem; color: var(--teal); text-decoration: none;">
             Forgot password?
           </a>
         </div>

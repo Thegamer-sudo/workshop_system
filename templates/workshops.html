@@ -97,56 +97,96 @@
           </div>
 
           <!-- Card Footer -->
-          <div class="card-footer">
+          <div class="card-footer" style="flex-direction: column; align-items: stretch; gap: 0.5rem;">
 
             {% if session.get('role') == 'admin' %}
-              <!-- Admin footer — approve pending or just label -->
+              <!-- Admin footer -->
               {% if workshop.status == 'pending' %}
-                <span class="text-sm text-muted">Awaiting your approval</span>
-                <div style="display:flex; gap:0.5rem;">
-                  <form method="POST"
-                    action="{{ url_for('approve_workshop', workshop_id=workshop.id) }}">
-                    <button type="submit" class="btn btn-primary btn-sm">Approve</button>
-                  </form>
-                  <form method="POST"
-                    action="{{ url_for('reject_workshop', workshop_id=workshop.id) }}"
-                    onsubmit="return confirm('Reject this workshop?');">
-                    <button type="submit" class="btn btn-danger btn-sm">Reject</button>
-                  </form>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="text-sm text-muted">Awaiting your approval</span>
+                  <div style="display:flex; gap:0.5rem;">
+                    <form method="POST" action="{{ url_for('approve_workshop', workshop_id=workshop.id) }}">
+                      <button type="submit" class="btn btn-primary btn-sm">Approve</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('reject_workshop', workshop_id=workshop.id) }}" onsubmit="return confirm('Reject this workshop?');">
+                      <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                    </form>
+                  </div>
                 </div>
               {% elif workshop.status == 'rejected' %}
-                <span class="text-sm text-muted">This workshop was rejected.</span>
-                <form method="POST"
-                  action="{{ url_for('delete_workshop', workshop_id=workshop.id) }}"
-                  onsubmit="return confirm('Delete this workshop?');">
-                  <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                </form>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="text-sm text-muted">This workshop was rejected.</span>
+                  <form method="POST" action="{{ url_for('delete_workshop', workshop_id=workshop.id) }}" onsubmit="return confirm('Delete this workshop?');">
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                  </form>
+                </div>
               {% else %}
-                <span class="text-sm" style="color:var(--success); font-weight:600;">
-                  Live
-                </span>
-                <form method="POST"
-                  action="{{ url_for('delete_workshop', workshop_id=workshop.id) }}"
-                  onsubmit="return confirm('Delete this workshop?');">
-                  <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                </form>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="text-sm" style="color:var(--success); font-weight:600;">Live</span>
+                  <form method="POST" action="{{ url_for('delete_workshop', workshop_id=workshop.id) }}" onsubmit="return confirm('Delete this workshop?');">
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                  </form>
+                </div>
               {% endif %}
 
-            {% elif session.get('user_id') %}
+            {% elif session.get('user_id') and session.get('role') != 'admin' %}
               <!-- Student or Host footer -->
               {% if workshop.id in registered_ids %}
-                <span class="text-sm" style="color:var(--success); font-weight:600;">
-                  You are registered
-                </span>
-                <form method="POST"
-                  action="{{ url_for('unregister_workshop', workshop_id=workshop.id) }}">
-                  <button type="submit" class="btn btn-ghost btn-sm">Cancel Registration</button>
-                </form>
+                {% if workshop.date < today %}
+                  <!-- COMPLETED WORKSHOP -->
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span class="text-sm text-muted">This workshop has passed.</span>
+                    {% if not workshop.my_rating %}
+                      <a href="{{ url_for('leave_feedback', workshop_id=workshop.id) }}"
+                        class="btn btn-sm"
+                        style="background: var(--warning); border-color: var(--warning); color: var(--navy);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"
+                          viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                          style="margin-right: 4px;">
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                        </svg>
+                        Leave Feedback
+                      </a>
+                    {% else %}
+                      <span class="text-sm" style="color:var(--teal); font-weight:600;">
+                        &#9733; {{ workshop.my_rating }}/5
+                      </span>
+                    {% endif %}
+                  </div>
+                {% else %}
+                  <!-- UPCOMING WORKSHOP -->
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span class="text-sm" style="color:var(--success); font-weight:600;">You are registered</span>
+                    <form method="POST" action="{{ url_for('unregister_workshop', workshop_id=workshop.id) }}">
+                      <button type="submit" class="btn btn-ghost btn-sm">Cancel</button>
+                    </form>
+                  </div>
+                  {% if workshop.teams_link %}
+                    <a href="{{ workshop.teams_link }}" target="_blank"
+                      class="btn btn-sm"
+                      style="justify-content:center; background:#5059C9; border-color:#5059C9; color:white;">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                      </svg>
+                      Join on Teams
+                    </a>
+                  {% endif %}
+                {% endif %}
               {% else %}
-                <form method="POST"
-                  action="{{ url_for('join_workshop', workshop_id=workshop.id) }}">
-                  <button type="submit" class="btn btn-primary btn-sm">Register</button>
-                </form>
+                <!-- NOT REGISTERED YET -->
+                {% if workshop.date < today %}
+                  <span class="text-sm text-muted">This workshop has passed.</span>
+                {% else %}
+                  <form method="POST" action="{{ url_for('join_workshop', workshop_id=workshop.id) }}">
+                    <button type="submit" class="btn btn-primary btn-sm">Register</button>
+                  </form>
+                {% endif %}
               {% endif %}
 
             {% else %}
