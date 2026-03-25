@@ -19,7 +19,7 @@ The Workshop Management System is a web-based application designed to manage and
 
 ## How to Run the Project
 1. Clone the repository:
-   git clone [your-repo-link]
+   git clone [https://github.com/Thegamer-sudo/workshop_system.git]
 
 2. Open the project in your development environment (e.g., Visual Studio Code )
 
