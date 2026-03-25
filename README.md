@@ -38,5 +38,5 @@ Challenges & Improvements
 - Adding more advanced features such as notifications
 
 ## Contributor
-- Zimasa Mabotshwa – Documentation, system structure, and coordination
-- [Other Team Members] – Development and implementation
+- Zimasa Mabotshwa – Helped with Documentation, system structure, and coordination
+
