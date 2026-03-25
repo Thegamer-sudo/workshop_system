@@ -1,14 +1,13 @@
 # ============================================
 #  app.py — Student Workshop System
 #  Works with SQLite (local) + PostgreSQL (Render)
-#  EMAIL ENABLED - Real email sending via Gmail
+#  Email DISABLED for deployment stability
 # ============================================
 
 from flask import (
     Flask, render_template, request,
     redirect, url_for, session, flash, jsonify
 )
-from flask_mail import Mail, Message
 import os
 import sqlite3
 import psycopg2
@@ -196,113 +195,30 @@ def times_overlap(start_a, end_a, start_b, end_b):
 
 
 # ============================================
-#  EMAIL CONFIGURATION - REAL EMAIL SENDING
+#  EMAIL DISABLED - Just prints to console
 # ============================================
 
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', '')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', '')
-app.config['MAIL_DEFAULT_SENDER'] = 'Student Workshop'
-
-mail = Mail(app)
-
-
 def send_email(to, subject, html_content):
-    if not app.config['MAIL_USERNAME'] or not app.config['MAIL_PASSWORD']:
-        print(f"⚠️ Email not configured. Would send to {to}: {subject}")
-        return False
-    try:
-        msg = Message(subject, recipients=[to])
-        msg.html = html_content
-        mail.send(msg)
-        print(f"✅ Email sent to {to}")
-        return True
-    except Exception as e:
-        print(f"❌ Email error: {e}")
-        return False
+    print(f"📧 EMAIL WOULD SEND to: {to}")
+    print(f"   Subject: {subject}")
+    print(f"   Content preview: {html_content[:100]}...")
+    return True
 
 
 def send_welcome_email(user_name, user_email):
-    subject = "🎉 Welcome to Student Workshop!"
-    html = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden;">
-        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 30px 25px; text-align: center;">
-            <div style="font-size: 32px; font-weight: 700; color: white;">Student Workshop</div>
-        </div>
-        <div style="padding: 30px 25px;">
-            <h2 style="color: #0f172a;">Welcome, {user_name}! 👋</h2>
-            <p style="color: #475569;">Your account has been successfully created.</p>
-            <a href="https://workshop-system-ex1a.onrender.com/workshops" style="display: inline-block; background: #0d9488; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px;">Browse Workshops →</a>
-        </div>
-    </div>
-    """
-    send_email(user_email, subject, html)
+    print(f"Welcome email would send to {user_email}")
 
 
 def send_registration_email(user_name, user_email, workshop_title, workshop_date, workshop_time, teams_link=None):
-    subject = f"✅ Registration Confirmed: {workshop_title}"
-    join_button = f"""
-    <a href="{teams_link}" style="display: inline-block; background: #5059C9; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px;">🎥 Join on Teams</a>
-    """ if teams_link else '<p><em>🔗 A Teams link will be provided by the host.</em></p>'
-    
-    html = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden;">
-        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 30px 25px; text-align: center;">
-            <div style="font-size: 28px; font-weight: 700; color: white;">Registration Confirmed!</div>
-        </div>
-        <div style="padding: 30px 25px;">
-            <h2 style="color: #0f172a;">Hello {user_name},</h2>
-            <p>You're registered for:</p>
-            <div style="background: #f0fdfa; border-left: 4px solid #0d9488; padding: 20px; margin: 20px 0;">
-                <h3>📖 {workshop_title}</h3>
-                <p><strong>📅 Date:</strong> {workshop_date}</p>
-                <p><strong>⏰ Time:</strong> {workshop_time}</p>
-                {join_button}
-            </div>
-            <a href="https://workshop-system-ex1a.onrender.com/dashboard" style="background: #0f172a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px;">📊 My Dashboard</a>
-        </div>
-    </div>
-    """
-    send_email(user_email, subject, html)
+    print(f"Registration email would send to {user_email} for {workshop_title}")
 
 
 def send_workshop_approved_email(host_name, host_email, workshop_title):
-    subject = f"🎉 Workshop Approved: {workshop_title}"
-    html = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden;">
-        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 30px 25px; text-align: center;">
-            <div style="font-size: 28px; font-weight: 700; color: white;">Workshop Approved!</div>
-        </div>
-        <div style="padding: 30px 25px;">
-            <h2>Great news, {host_name}!</h2>
-            <p>Your workshop <strong>"{workshop_title}"</strong> is now live!</p>
-            <a href="https://workshop-system-ex1a.onrender.com/host/dashboard" style="display: inline-block; background: #0d9488; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px;">Go to Host Dashboard →</a>
-        </div>
-    </div>
-    """
-    send_email(host_email, subject, html)
+    print(f"Approval email would send to {host_email} for {workshop_title}")
 
 
 def send_password_reset_email(user_name, user_email, reset_link):
-    subject = "🔐 Reset Your Password - Student Workshop"
-    html = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden;">
-        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 30px 25px; text-align: center;">
-            <div style="font-size: 28px; font-weight: 700; color: white;">Reset Password</div>
-        </div>
-        <div style="padding: 30px 25px;">
-            <h2>Hello {user_name},</h2>
-            <p>Click the button below to reset your password:</p>
-            <div style="text-align: center; margin: 30px 0;">
-                <a href="{reset_link}" style="background: #0d9488; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px;">Reset Password</a>
-            </div>
-            <p>This link expires in 24 hours.</p>
-        </div>
-    </div>
-    """
-    send_email(user_email, subject, html)
+    print(f"Password reset email would send to {user_email}")
 
 
 # ============================================
@@ -466,7 +382,7 @@ def register():
             
             send_welcome_email(name, email)
             
-            flash(f'Account created as {role_label}. A welcome email has been sent.', 'success')
+            flash(f'Account created as {role_label}. Please sign in.', 'success')
             return redirect(url_for('login'))
 
         except Exception as e:
@@ -868,7 +784,7 @@ def join_workshop(workshop_id):
             workshop['teams_link']
         )
         
-        flash(f'You have registered for "{workshop["title"]}". A confirmation email has been sent.', 'success')
+        flash(f'You have registered for "{workshop["title"]}".', 'success')
 
     except Exception:
         flash('You are already registered for this workshop.', 'warning')
@@ -1349,7 +1265,7 @@ def approve_workshop(workshop_id):
             workshop['title']
         )
         
-        flash(f'"{workshop["title"]}" approved and is now visible to students. Email sent to host.', 'success')
+        flash(f'"{workshop["title"]}" approved and is now visible to students.', 'success')
     else:
         flash('Workshop not found.', 'error')
 
