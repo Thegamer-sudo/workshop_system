@@ -4,10 +4,9 @@
 #  Email DISABLED for deployment stability
 # ============================================
 
-from flask import (
-    Flask, render_template, request,
-    redirect, url_for, session, flash, jsonify
-)
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+
+
 import os
 import sqlite3
 import psycopg2
