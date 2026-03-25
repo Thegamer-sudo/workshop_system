@@ -23,7 +23,7 @@ The Workshop Management System is a web-based application designed to manage and
 
 2. Open the project in your development environment (e.g., Visual Studio Code )
 
-3. Set up the database (if applicable)
+3. Set up the database (if applicable.)
 
 4. Run the application
 
